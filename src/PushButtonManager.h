@@ -2,17 +2,19 @@
 #define PUSHBUTTONMANAGER_H
 
 #include "Arduino.h"
+#include "TonePlayer.h"
 
-class PushButtonManager {
+// Classe pour gérer un bouton poussoir
+class PushButtonManager : public TonePlayerListener {
 public:
     PushButtonManager(uint8_t pin);
     void begin();
     void update();
     bool isButtonPressed() const;
+    void onToneFinished() override;
 
 private:
     uint8_t pin;
-    bool lastButtonState;
     bool buttonPressed;
 };
 

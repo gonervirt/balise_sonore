@@ -6,7 +6,7 @@ volatile unsigned long RadioMessageHandler::memoMicros = 0;
 volatile int RadioMessageHandler::MyInts[100] = {0};
 volatile bool RadioMessageHandler::interruptionActive = true;
 
-RadioMessageHandler::RadioMessageHandler() : currentMessage(0) {}
+RadioMessageHandler::RadioMessageHandler() : currentMessage(0), status(WAITING_MSG) {}
 
 void RadioMessageHandler::begin() {
     pinMode(15, INPUT_PULLUP);
@@ -44,5 +44,9 @@ void RadioMessageHandler::decodeMessage() {
     // Decode the message and set currentMessage
     // Decode the message
     currentMessage = 1;  // decoded message number 
+}
+
+void RadioMessageHandler::onToneFinished() {
+    status = WAITING_MSG;
 }
 

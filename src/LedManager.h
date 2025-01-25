@@ -3,6 +3,7 @@
 
 #include "Arduino.h"
 
+// Classe pour gérer les LEDs de statut
 class LedManager {
 public:
     LedManager(uint8_t greenPin, uint8_t yellowPin, uint8_t redPin);

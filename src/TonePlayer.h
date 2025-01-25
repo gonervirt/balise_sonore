@@ -1,7 +1,14 @@
 #ifndef TONEPLAYER_H
 #define TONEPLAYER_H
 
-#include "DFRobotDFPlayerMini.h"
+#include "Arduino.h"
+#include <DFRobotDFPlayerMini.h>
+#include <vector>
+
+class TonePlayerListener {
+public:
+    virtual void onToneFinished() = 0;
+};
 
 class TonePlayer {
 public:
@@ -13,6 +20,7 @@ public:
     bool isPlaying();
     bool isInhibited();
     void update();
+    void addListener(TonePlayerListener* listener);
 
 private:
     DFRobotDFPlayerMini myMP3player;
@@ -23,6 +31,9 @@ private:
     bool playing;
     bool inhibited;
     unsigned long inhibitStartTime;
+    std::vector<TonePlayerListener*> listeners;
+
+    void notifyListeners();
 };
 
 #endif // TONEPLAYER_H

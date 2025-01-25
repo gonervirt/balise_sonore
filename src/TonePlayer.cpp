@@ -45,9 +45,20 @@ void TonePlayer::update() {
         playing = false;
         inhibited = true;
         inhibitStartTime = millis();
+        notifyListeners();
     }
 
     if (inhibited && (millis() - inhibitStartTime) > inhibitDuration) {
         inhibited = false;
+    }
+}
+
+void TonePlayer::addListener(TonePlayerListener* listener) {
+    listeners.push_back(listener);
+}
+
+void TonePlayer::notifyListeners() {
+    for (TonePlayerListener* listener : listeners) {
+        listener->onToneFinished();
     }
 }
