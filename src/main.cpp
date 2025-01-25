@@ -3,6 +3,7 @@
 #include "RadioMessageHandler.h"
 #include "TonePlayer.h"
 #include "Config.h"
+#include "PushButtonManager.h"
 #include <WiFi.h>
 #include <ESPAsyncWebServer.h>
 #include <WiFiAP.h>
@@ -17,12 +18,13 @@ IPAddress subnet(255, 255, 255, 0);
 
 #define RXD2 16  // RX2 pour communiquer avec MP3
 #define TXD2 17  // TX2 pour communiquer avec MP3
-
+#define BUTTON_PIN 0 // Define the pin for the push button
 
 Config config;
 TonePlayer tonePlayer(RXD2, TXD2);
 WebServerManager webServerManager(tonePlayer, config);
 RadioMessageHandler radioMessageHandler;
+PushButtonManager pushButtonManager(BUTTON_PIN);
 
 void setup() {
     pinMode(2, OUTPUT);
@@ -31,6 +33,7 @@ void setup() {
     tonePlayer.begin();
     webServerManager.begin();
     radioMessageHandler.begin();
+    pushButtonManager.begin();
 
     WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(local_ip, gateway, subnet);
@@ -41,10 +44,13 @@ void setup() {
 void loop() {
     webServerManager.handleClient();
     radioMessageHandler.processMessages();
+    pushButtonManager.update();
 
-    if (!tonePlayer.isPlaying() && !tonePlayer.isInhibited() && radioMessageHandler.getCurrentMessage() > 0) {
-        tonePlayer.playTone(config.getNumeroMessage());
-    }
+    if (!tonePlayer.isPlaying() && !tonePlayer.isInhibited()) {      
+            tonePlayer.playTone(config.getNumeroMessage());
+        } else if (pushButtonManager.isButtonPressed()) {
+            tonePlayer.playTone(config.getNumeroMessage()); // Play tone when button is pressed
+        }
 
     tonePlayer.update();
 }
