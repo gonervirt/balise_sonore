@@ -1,6 +1,9 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include <Arduino.h>
+#include <LittleFS.h>
+#include <ArduinoJson.h>
 #include <FS.h>
 #include <SPIFFS.h>
 
@@ -91,6 +94,9 @@ private:
     int message_count;
     
     const char* getDefaultMessage(int number) const;
+    static const char* CONFIG_FILE;  // Add this line
+    bool saveJsonToFile(const JsonDocument& doc);
+    bool loadJsonFromFile(JsonDocument& doc);
 };
 
 #endif // CONFIG_H

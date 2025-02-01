@@ -1,8 +1,9 @@
 #include "Config.h"
 #include "Arduino.h"
-#include <Preferences.h>
+#include <LittleFS.h>
+#include <ArduinoJson.h>
 
-Preferences preferences;
+const char* Config::CONFIG_FILE = "/config.json";
 
 // Constructeur de la classe Config
 Config::Config() {
@@ -21,54 +22,114 @@ Config::Config() {
 
 // Initialisation de la configuration
 void Config::begin() {
-    preferences.begin("config", false);
+    if (!LittleFS.begin(true)) {
+        Serial.println("Failed to mount LittleFS");
+        return;
+    }
     loadConfig();
 }
 
 // Chargement de la configuration depuis la mémoire non volatile
 void Config::loadConfig() {
-    numeroMessage = preferences.getInt("numeroMessage", 1);
+    StaticJsonDocument<2048> doc;
     
-    // Load WiFi configuration
-    String ssid = preferences.getString("wifi_ssid", "ESP32-AP");
-    String password = preferences.getString("wifi_password", "password123");
-    access_point = preferences.getBool("access_point", true);
-    wifi_channel = preferences.getUChar("wifi_channel", 6);
-    hidden_ssid = preferences.getBool("hidden_ssid", false);
-    
-    strcpy(wifi_ssid, ssid.c_str());
-    strcpy(wifi_password, password.c_str());
+    if (!loadJsonFromFile(doc)) {
+        Serial.println("Using default configuration");
+        return;
+    }
 
-    message_count = preferences.getInt("message_count", 1);
-    for(int i = 0; i < MAX_MESSAGES; i++) {
-        char key[16];
-        snprintf(key, sizeof(key), "message_%d", i + 1);
-        String msg = preferences.getString(key, String(getDefaultMessage(i + 1)));
-        strncpy(messages[i], msg.c_str(), MAX_MESSAGE_LENGTH - 1);
-        messages[i][MAX_MESSAGE_LENGTH - 1] = '\0';
-        message_defined[i] = msg.length() > 0;
+    // Load WiFi settings
+    strlcpy(wifi_ssid, doc["wifi_ssid"] | "ESP32-AP", sizeof(wifi_ssid));
+    strlcpy(wifi_password, doc["wifi_password"] | "password123", sizeof(wifi_password));
+    access_point = doc["access_point"] | true;
+    wifi_channel = doc["wifi_channel"] | 6;
+    hidden_ssid = doc["hidden_ssid"] | false;
+
+    // Load message settings
+    numeroMessage = doc["numeroMessage"] | 1;
+    message_count = doc["message_count"] | 1;
+
+    // Load messages
+    JsonArray messages_array = doc["messages"].as<JsonArray>();
+    int i = 0;
+    for (JsonVariant v : messages_array) {
+        if (i >= MAX_MESSAGES) break;
+        const char* msg = v["text"] | getDefaultMessage(i + 1);
+        strlcpy(messages[i], msg, MAX_MESSAGE_LENGTH);
+        message_defined[i] = strlen(messages[i]) > 0;
+        i++;
     }
 }
 
 // Sauvegarde de la configuration dans la mémoire non volatile
 void Config::saveConfig() {
-    preferences.putInt("numeroMessage", numeroMessage);
-    
-    // Save WiFi configuration
-    preferences.putString("wifi_ssid", wifi_ssid);
-    preferences.putString("wifi_password", wifi_password);
-    preferences.putBool("access_point", access_point);
-    preferences.putUChar("wifi_channel", wifi_channel);
-    preferences.putBool("hidden_ssid", hidden_ssid);
+    StaticJsonDocument<2048> doc;
 
-    preferences.putInt("message_count", message_count);
-    for(int i = 0; i < MAX_MESSAGES; i++) {
+    // Save WiFi settings
+    doc["wifi_ssid"] = wifi_ssid;
+    doc["wifi_password"] = wifi_password;
+    doc["access_point"] = access_point;
+    doc["wifi_channel"] = wifi_channel;
+    doc["hidden_ssid"] = hidden_ssid;
+
+    // Save message settings
+    doc["numeroMessage"] = numeroMessage;
+    doc["message_count"] = message_count;
+
+    // Save messages
+    JsonArray messages_array = doc.createNestedArray("messages");
+    for (int i = 0; i < MAX_MESSAGES; i++) {
         if (message_defined[i]) {
-            char key[16];
-            snprintf(key, sizeof(key), "message_%d", i + 1);
-            preferences.putString(key, messages[i]);
+            JsonObject msg = messages_array.createNestedObject();
+            msg["id"] = i + 1;
+            msg["text"] = messages[i];
         }
     }
+
+    if (!saveJsonToFile(doc)) {
+        Serial.println("Failed to save configuration");
+    }
+}
+
+bool Config::loadJsonFromFile(JsonDocument& doc) {
+    if (!LittleFS.exists(CONFIG_FILE)) {
+        Serial.println("Configuration file not found");
+        return false;
+    }
+
+    File file = LittleFS.open(CONFIG_FILE, "r");
+    if (!file) {
+        Serial.println("Failed to open config file");
+        return false;
+    }
+
+    DeserializationError error = deserializeJson(doc, file);
+    file.close();
+
+    if (error) {
+        Serial.print("Failed to parse config file: ");
+        Serial.println(error.c_str());
+        return false;
+    }
+
+    return true;
+}
+
+bool Config::saveJsonToFile(const JsonDocument& doc) {
+    File file = LittleFS.open(CONFIG_FILE, "w");
+    if (!file) {
+        Serial.println("Failed to open config file for writing");
+        return false;
+    }
+
+    if (serializeJson(doc, file) == 0) {
+        Serial.println("Failed to write config file");
+        file.close();
+        return false;
+    }
+
+    file.close();
+    return true;
 }
 
 // Retourne le numéro du message
