@@ -13,6 +13,7 @@ public:
     void handleInterrupt();
     void processMessages();
     int getCurrentMessage() const;
+    bool isMessageReady() const;
     void onToneFinished() override;
 
     static const int WAITING_MSG = 0;

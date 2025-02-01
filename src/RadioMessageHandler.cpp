@@ -26,6 +26,10 @@ void RadioMessageHandler::processMessages() {
     }
 }
 
+bool RadioMessageHandler::isMessageReady() const {
+    return status == MSG_READY;
+}
+
 int RadioMessageHandler::getCurrentMessage() const {
     return currentMessage;
 }

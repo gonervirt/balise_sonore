@@ -2,6 +2,7 @@
 #define WEBSERVERMANAGER_H
 
 #include <ESPAsyncWebServer.h>
+//#include <WiFi.h>
 #include "TonePlayer.h"
 #include "Config.h"
 
@@ -14,6 +15,7 @@ public:
 
 private:
     AsyncWebServer server;
+    //WiFiServer server;
     TonePlayer& tonePlayer;
     Config& config;
     void setupRoutes();

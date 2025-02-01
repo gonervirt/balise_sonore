@@ -20,6 +20,7 @@ public:
     bool isPlaying();
     bool isInhibited();
     void update();
+    void reset();
     void addListener(TonePlayerListener* listener);
 
 private:

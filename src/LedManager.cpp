@@ -10,21 +10,35 @@ void LedManager::begin() {
     pinMode(yellowPin, OUTPUT);
     pinMode(redPin, OUTPUT);
     off();
+    //test leds, start up sequence
+    setGreen(); // LED verte pour indiquer le démarrage
+    delay(100);
+    setYellow(); // LED verte pour indiquer le démarrage
+    delay(100);
+    setRed(); // LED verte pour indiquer le démarrage
+    delay(100);
+    setYellow(); // LED verte pour indiquer le démarrage
+    delay(100);
+    setGreen(); // LED verte pour indiquer le démarrage
+    delay(100);
 }
 
 // Allume la LED verte
 void LedManager::setGreen() {
     setLed(greenPin);
+    //Serial.println("LED set to green");
 }
 
 // Allume la LED jaune
 void LedManager::setYellow() {
     setLed(yellowPin);
+    //Serial.println("LED set to yellow");
 }
 
 // Allume la LED rouge
 void LedManager::setRed() {
     setLed(redPin);
+    //Serial.println("LED set to red");
 }
 
 // Éteint toutes les LEDs
