@@ -113,17 +113,25 @@ void WebServerManager::handleWifiSave() {
         uint8_t channel = server.hasArg("channel") ? server.arg("channel").toInt() : 6;
         bool hidden = server.hasArg("hidden");
         
+        Serial.printf("New WiFi Settings - SSID: %s, Mode: %s, Channel: %d, Hidden: %s\n",
+                     ssid.c_str(),
+                     isAP ? "AP" : "Station",
+                     channel,
+                     hidden ? "Yes" : "No");
+        
         if (channel < 1) channel = 1;
         if (channel > 13) channel = 13;
         
+        // Update WiFi configuration and save it
         config.setWifiConfig(ssid.c_str(), 
                            password.length() > 0 ? password.c_str() : config.getWifiPassword(), 
                            isAP);
         config.setWifiAdvanced(channel, hidden);
+        config.saveConfig();  // Save configuration to flash
         
+        Serial.println("WiFi configuration saved to flash memory");
         server.sendHeader("Location", "/");
         server.send(303);
-        Serial.println("WiFi configuration saved successfully");
     } else {
         Serial.println("Error: Missing WiFi configuration parameters");
         server.send(400, "text/plain", "Missing parameters");
@@ -140,39 +148,74 @@ void WebServerManager::handleMessageConfig() {
     html += formatConfigItem("Active Message Text", config.getMessageText(config.getNumeroMessage()));
     html += "</div>";
 
-    // Add CSS for radio button styling
+    // Add CSS for radio button styling and button container
     html += "<style>"
             ".msg-container { margin: 10px 0; }"
             ".msg-radio { display: none; }"
             ".msg-label { display: block; padding: 10px; background: #f0f0f0; cursor: pointer; }"
             ".msg-radio:checked + .msg-label { background: #b0e0e6; }"
+            ".button-container { margin: 20px 0; display: flex; justify-content: space-between; }"
+            ".button-group { display: flex; gap: 10px; }"
             "</style>";
 
-    // Message selection with radio buttons
-    html += "<form action='/message-save' method='post'>";
+    // Add JavaScript for message selection handling
+    html += "<script>"
+            "function updateMessageText(select) {"
+            "  const messages = {";
+    // Generate JavaScript object with message texts
     for(int i = 1; i <= Config::MAX_MESSAGES; i++) {
-        html += "<div class='msg-container'>";
-        html += "<input type='radio' class='msg-radio' name='messageNum' value='" + 
-                String(i) + "' id='msg" + String(i) + "' " +
-                (config.getNumeroMessage() == i ? "checked" : "") + ">";
-        html += "<label class='msg-label' for='msg" + String(i) + "'>";
-        html += "Message " + String(i) + ": " + String(config.getMessageText(i));
-        html += "</label></div>";
+        html += String(i) + ": `" + String(config.getMessageText(i)) + "`";
+        if (i < Config::MAX_MESSAGES) html += ", ";
     }
-    html += "<input type='submit' value='Set Active Message' class='btn'>";
-    html += "</form><br><hr><br>";
+    html += "};"
+            "  document.getElementById('messageText').value = messages[select.value] || '';"
+            "}</script>";
 
-    // Message text editing section
-    html += "<h2>Message Texts</h2>";
+    // Message selection with radio buttons and action buttons
+    html += "<div class='config-section'>";
+    html += "<h2>Message Management</h2>";
+    html += "<form action='/message-save' method='post'>";
+    
+    // Message list with radio buttons
+    for(int i = 1; i <= Config::MAX_MESSAGES; i++) {
+        if (String(config.getMessageText(i)).length() > 0) {  // Only show non-empty messages
+            html += "<div class='msg-container'>";
+            html += "<input type='radio' class='msg-radio' name='messageNum' value='" + 
+                    String(i) + "' id='msg" + String(i) + "' " +
+                    (config.getNumeroMessage() == i ? "checked" : "") + ">";
+            html += "<label class='msg-label' for='msg" + String(i) + "'>";
+            html += "Message " + String(i) + ": " + String(config.getMessageText(i));
+            html += "</label></div>";
+        }
+    }
+
+    // Button container with groups
+    html += "<div class='button-container'>";
+    html += "<div class='button-group'>";
+    html += "<input type='submit' value='Set Active Message' class='btn'>";
+    html += "</div>";
+    html += "<div class='button-group'>";
+    html += "<button type='submit' name='action' value='add' class='btn'>Add New Message</button>";
+    html += "<button type='submit' name='action' value='remove' class='btn'>Remove Selected</button>";
+    html += "</div>";
+    html += "</div>";
+    html += "</form>";
+    html += "</div>";
+
+    // Message text editing section with updated form
+    html += "<div class='config-section'>";
+    html += "<h2>Edit Message</h2>";
     html += "<form action='/message-text-save' method='post'>";
-    html += "<select name='number'>";
+    html += "<select name='number' onchange='updateMessageText(this)'>";
     for(int i = 1; i <= Config::MAX_MESSAGES; i++) {
         html += "<option value='" + String(i) + "'>" + String(i) + "</option>";
     }
     html += "</select><br>";
-    html += "<textarea name='text' rows='2' cols='40'></textarea><br>";
+    html += "<textarea id='messageText' name='text' rows='2' cols='40'>" + 
+            String(config.getMessageText(1)) + "</textarea><br>";
     html += "<input type='submit' value='Save Message' class='btn'>";
     html += "</form>";
+    html += "</div>";
     
     html += getFooter();
     server.send(200, "text/html", html);
@@ -181,10 +224,12 @@ void WebServerManager::handleMessageConfig() {
 void WebServerManager::handleMessageSave() {
     Serial.println("Processing message configuration save");
     if (server.hasArg("messageNum")) {
+        int messageNum = server.arg("messageNum").toInt();
+        
         if (server.hasArg("action")) {
+            // Handle add/remove actions
             String action = server.arg("action");
             Serial.printf("Message action: %s\n", action.c_str());
-            int messageNum = server.arg("messageNum").toInt();
             
             if (action == "remove" && messageNum >= 1 && messageNum <= Config::MAX_MESSAGES) {
                 // Remove message and shift others up
@@ -202,8 +247,21 @@ void WebServerManager::handleMessageSave() {
                     }
                 }
             }
+            
+        } else {
+            // Set active message
+            if (messageNum >= 1 && messageNum <= Config::MAX_MESSAGES) {
+                Serial.printf("Setting active message to %d\n", messageNum);
+                config.setNumeroMessage(messageNum);
+                config.saveConfig(); // Explicitly save the configuration
+                Serial.println("Active message updated and saved successfully");
+            } else {
+                Serial.println("Error: Invalid message number");
+                server.send(400, "text/plain", "Invalid message number");
+                return;
+            }
         }
-        Serial.println("Message configuration saved successfully");
+        
         server.sendHeader("Location", "/message");
         server.send(303);
     } else {
@@ -216,14 +274,22 @@ void WebServerManager::handleMessageTextSave() {
     Serial.println("Processing message text save");
     if (server.hasArg("number") && server.hasArg("text")) {
         int number = server.arg("number").toInt();
-        Serial.printf("Saving text for message %d\n", number);
         String text = server.arg("text");
         
+        Serial.printf("Saving text for message %d: '%s'\n", number, text.c_str());
+        
         if (number >= 1 && number <= Config::MAX_MESSAGES) {
-            config.setMessageText(number, text.c_str());
-            server.sendHeader("Location", "/message");
-            server.send(303);
-            Serial.println("Message text saved successfully");
+            // Update the message text in config
+            if (config.setMessageText(number, text.c_str())) {
+                // Explicitly save configuration to flash
+                config.saveConfig();
+                Serial.println("Message text saved successfully to flash memory");
+                server.sendHeader("Location", "/message");
+                server.send(303);
+            } else {
+                Serial.println("Error: Failed to save message text");
+                server.send(500, "text/plain", "Failed to save message");
+            }
         } else {
             Serial.println("Error: Invalid message number");
             server.send(400, "text/plain", "Invalid message number");
