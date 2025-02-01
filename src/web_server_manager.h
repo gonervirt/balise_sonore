@@ -2,23 +2,31 @@
 #define WEB_SERVER_MANAGER_H
 
 #include <WebServer.h>
+#include "Config.h"
 
 class WebServerManager {
 private:
     WebServer server;
+    Config& config;
+    
+    // Helper methods
+    String getHeader(const char* title);
+    String getFooter();
     
 public:
-    WebServerManager(int port = 80);
+    WebServerManager(Config& config, int port = 80);
     
     void begin();
     void handleClient();
-    
-    // Setup route handlers
     void setupRoutes();
     
-    // Default handlers
+    // Route handlers
     void handleRoot();
     void handleNotFound();
+    void handleWifiConfig();
+    void handleWifiSave();
+    void handleMessageConfig();
+    void handleMessageSave();
 };
 
 #endif
