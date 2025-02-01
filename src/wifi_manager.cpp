@@ -26,19 +26,39 @@ WiFiManager::WiFiManager(Config &config) {
 
 bool WiFiManager::begin() {
     if (isAP) {
+        Serial.println("Starting Access Point mode...");
         WiFi.mode(WIFI_AP);
-        return WiFi.softAP(ssid, password, channel, hidden_ssid);
+        bool success = WiFi.softAP(ssid, password, channel, hidden_ssid);
+        if (success) {
+            Serial.println("Access Point started successfully");
+            Serial.printf("SSID: %s\n", ssid);
+            Serial.printf("IP Address: %s\n", WiFi.softAPIP().toString().c_str());
+        } else {
+            Serial.println("Failed to start Access Point");
+        }
+        return success;
     } else {
+        Serial.println("Starting Station mode...");
+        Serial.printf("Connecting to SSID: %s\n", ssid);
+        
         WiFi.mode(WIFI_STA);
         WiFi.begin(ssid, password);
         
-        // Wait for connection with timeout
         int timeout = 20;
         while (WiFi.status() != WL_CONNECTED && timeout > 0) {
+            Serial.print(".");
             delay(500);
             timeout--;
         }
-        return WiFi.status() == WL_CONNECTED;
+        Serial.println();
+        
+        if (WiFi.status() == WL_CONNECTED) {
+            Serial.println("Successfully connected to WiFi");
+            Serial.printf("IP Address: %s\n", WiFi.localIP().toString().c_str());
+            return true;
+        }
+        Serial.println("Failed to connect to WiFi");
+        return false;
     }
 }
 

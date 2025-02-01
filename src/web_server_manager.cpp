@@ -36,6 +36,7 @@ String WebServerManager::formatConfigItem(const char* label, const String& value
 void WebServerManager::begin() {
     setupRoutes();
     server.begin();
+    Serial.println("Web server started successfully");
 }
 
 void WebServerManager::handleClient() {
@@ -43,6 +44,7 @@ void WebServerManager::handleClient() {
 }
 
 void WebServerManager::setupRoutes() {
+    Serial.println("Setting up web server routes...");
     server.on("/", [this]() { this->handleRoot(); });
     server.on("/wifi", [this]() { this->handleWifiConfig(); });
     server.on("/wifi-save", HTTP_POST, [this]() { this->handleWifiSave(); });
@@ -50,9 +52,11 @@ void WebServerManager::setupRoutes() {
     server.on("/message-save", HTTP_POST, [this]() { this->handleMessageSave(); });
     server.on("/message-text-save", HTTP_POST, [this]() { this->handleMessageTextSave(); });
     server.onNotFound([this]() { this->handleNotFound(); });
+    Serial.println("Routes configured successfully");
 }
 
 void WebServerManager::handleRoot() {
+    Serial.println("Handling root page request");
     String html = getHeader("ESP32 Web Server");
     
     html += "<div class='config-section'>";
@@ -68,6 +72,7 @@ void WebServerManager::handleRoot() {
 }
 
 void WebServerManager::handleWifiConfig() {
+    Serial.println("Handling WiFi configuration page request");
     String html = getHeader("WiFi Configuration");
     
     html += "<div class='config-section'>";
@@ -100,6 +105,7 @@ void WebServerManager::handleWifiConfig() {
 }
 
 void WebServerManager::handleWifiSave() {
+    Serial.println("Processing WiFi configuration save");
     if (server.hasArg("ssid") && server.hasArg("mode")) {
         String ssid = server.arg("ssid");
         String password = server.arg("password");
@@ -117,12 +123,15 @@ void WebServerManager::handleWifiSave() {
         
         server.sendHeader("Location", "/");
         server.send(303);
+        Serial.println("WiFi configuration saved successfully");
     } else {
+        Serial.println("Error: Missing WiFi configuration parameters");
         server.send(400, "text/plain", "Missing parameters");
     }
 }
 
 void WebServerManager::handleMessageConfig() {
+    Serial.println("Handling message configuration page request");
     String html = getHeader("Message Configuration");
     
     html += "<div class='config-section'>";
@@ -170,9 +179,11 @@ void WebServerManager::handleMessageConfig() {
 }
 
 void WebServerManager::handleMessageSave() {
+    Serial.println("Processing message configuration save");
     if (server.hasArg("messageNum")) {
         if (server.hasArg("action")) {
             String action = server.arg("action");
+            Serial.printf("Message action: %s\n", action.c_str());
             int messageNum = server.arg("messageNum").toInt();
             
             if (action == "remove" && messageNum >= 1 && messageNum <= Config::MAX_MESSAGES) {
@@ -191,37 +202,39 @@ void WebServerManager::handleMessageSave() {
                     }
                 }
             }
-        } else {
-            // Set active message
-            int messageNum = server.arg("messageNum").toInt();
-            if (messageNum >= 1 && messageNum <= Config::MAX_MESSAGES) {
-                config.setNumeroMessage(messageNum);
-            }
         }
+        Serial.println("Message configuration saved successfully");
         server.sendHeader("Location", "/message");
         server.send(303);
     } else {
+        Serial.println("Error: Missing message parameters");
         server.send(400, "text/plain", "Missing parameters");
     }
 }
 
 void WebServerManager::handleMessageTextSave() {
+    Serial.println("Processing message text save");
     if (server.hasArg("number") && server.hasArg("text")) {
         int number = server.arg("number").toInt();
+        Serial.printf("Saving text for message %d\n", number);
         String text = server.arg("text");
         
         if (number >= 1 && number <= Config::MAX_MESSAGES) {
             config.setMessageText(number, text.c_str());
             server.sendHeader("Location", "/message");
             server.send(303);
+            Serial.println("Message text saved successfully");
         } else {
+            Serial.println("Error: Invalid message number");
             server.send(400, "text/plain", "Invalid message number");
         }
     } else {
+        Serial.println("Error: Missing message text parameters");
         server.send(400, "text/plain", "Missing parameters");
     }
 }
 
 void WebServerManager::handleNotFound() {
+    Serial.println("404 Not Found: " + server.uri());
     server.send(404, "text/plain", "Not found");
 }
