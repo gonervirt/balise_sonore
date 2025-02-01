@@ -1,0 +1,3 @@
+In web_server_manager.cpp, when selecting the message number, is it possibel to have all message in text display and add a radia button to select only one fo them. The selected one will have another background color. If a css have to be modified, it should be included in the class file.
+
+In web_server_manager.cpp, coudl you add button to add or remove a message with its messageNum. if needed, you shoul denumber the messagea must go from 1 to latest message number.

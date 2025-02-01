@@ -59,6 +59,8 @@ public:
 
     /** Process message configuration form submission */
     void handleMessageTextSave();
+
+    String formatConfigItem(const char* label, const String& value);
 };
 
 #endif
