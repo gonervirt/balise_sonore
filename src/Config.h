@@ -15,7 +15,6 @@
  */
 class Config {
 public:
-    static const int MAX_MESSAGES = 9;
     static const int MAX_MESSAGE_LENGTH = 64;
 
     Config();
@@ -67,13 +66,13 @@ public:
     void setWifiAdvanced(uint8_t channel, bool hidden);
 
     /** Get message description by number
-     * @param number Message number (1-9)
+     * @param number Message number (1-message_count)
      * @return Message description or default text if not set
      */
     const char* getMessageText(int number) const;
     
     /** Set message description
-     * @param number Message number (1-9)
+     * @param number Message number (1-message_count)
      * @param text New message description
      * @return true if successful
      */
@@ -82,6 +81,9 @@ public:
     /** Get number of defined messages */
     int getMessageCount() const;
 
+    /** Set number of defined messages */
+    void setMessageCount(int number) ;
+
 private:
     int numeroMessage;
     char wifi_ssid[32];
@@ -89,8 +91,9 @@ private:
     bool access_point;
     uint8_t wifi_channel;
     bool hidden_ssid;
-    char messages[MAX_MESSAGES][MAX_MESSAGE_LENGTH];
-    bool message_defined[MAX_MESSAGES];
+    static const int ABSOLUTE_MAX_MESSAGES = 32;  // Safety limit
+    char messages[ABSOLUTE_MAX_MESSAGES][MAX_MESSAGE_LENGTH];
+    bool message_defined[ABSOLUTE_MAX_MESSAGES];
     int message_count;
     
     const char* getDefaultMessage(int number) const;

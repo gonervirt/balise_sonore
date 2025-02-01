@@ -13,8 +13,8 @@ Config::Config() {
     access_point = true;
     wifi_channel = 6;
     hidden_ssid = false;
-    message_count = 1;
-    for(int i = 0; i < MAX_MESSAGES; i++) {
+    message_count = 3;  // Initial number of messages
+    for(int i = 0; i < message_count; i++) {
         message_defined[i] = false;
         strcpy(messages[i], getDefaultMessage(i + 1));
     }
@@ -69,7 +69,7 @@ void Config::loadConfig() {
     JsonArray messages_array = doc["messages"].as<JsonArray>();
     int i = 0;
     for (JsonVariant v : messages_array) {
-        if (i >= MAX_MESSAGES) break;
+        if (i >= message_count) break;
         const char* msg = v["text"] | getDefaultMessage(i + 1);
         strlcpy(messages[i], msg, MAX_MESSAGE_LENGTH);
         message_defined[i] = strlen(messages[i]) > 0;
@@ -94,7 +94,7 @@ void Config::saveConfig() {
 
     // Save messages using newer API
     JsonArray messages_array = doc["messages"].to<JsonArray>();
-    for (int i = 0; i < MAX_MESSAGES; i++) {
+    for (int i = 0; i < message_count; i++) {
         if (message_defined[i]) {
             JsonObject msg = messages_array.add<JsonObject>();
             msg["id"] = i + 1;
@@ -192,12 +192,12 @@ void Config::setWifiAdvanced(uint8_t channel, bool hidden) {
 }
 
 const char* Config::getMessageText(int number) const {
-    if (number < 1 || number > MAX_MESSAGES) return "";
+    if (number < 1 || number > message_count) return "";
     return messages[number - 1];
 }
 
 bool Config::setMessageText(int number, const char* text) {
-    if (number < 1 || number > MAX_MESSAGES) return false;
+    if (number < 1 || number > message_count) return false;
     strncpy(messages[number - 1], text, MAX_MESSAGE_LENGTH - 1);
     message_defined[number - 1] = true;
     if (number > message_count) message_count = number;
@@ -207,6 +207,10 @@ bool Config::setMessageText(int number, const char* text) {
 
 int Config::getMessageCount() const {
     return message_count;
+}
+
+void Config::setMessageCount(int number)  {
+    message_count = number;
 }
 
 const char* Config::getDefaultMessage(int number) const {

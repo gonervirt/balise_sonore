@@ -158,18 +158,17 @@ void WebServerManager::handleMessageConfig() {
             ".button-group { display: flex; gap: 10px; }"
             "</style>";
 
-    // Add JavaScript for message selection handling
+    // Updated JavaScript for message selection handling
     html += "<script>"
+            "let selectedMessageNum = " + String(config.getNumeroMessage()) + ";"
             "function updateMessageText(messageNum) {"
-            "  const messages = {";
-    // Generate JavaScript object with message texts
-    for(int i = 1; i <= Config::MAX_MESSAGES; i++) {
-        html += String(i) + ": `" + String(config.getMessageText(i)) + "`";
-        if (i < Config::MAX_MESSAGES) html += ", ";
-    }
-    html += "};"
-            "  document.getElementById('messageText').value = messages[messageNum] || '';"
-            "  document.getElementById('messageNumber').value = messageNum;"
+            "  selectedMessageNum = messageNum;"
+            "  const text = document.querySelector(`label[for='msg${messageNum}']`).textContent.split(': ')[1];"
+            "  document.getElementById('messageText').value = text;"
+            "}"
+            "function prepareMessageSubmit(form) {"
+            "  document.getElementById('messageNumber').value = selectedMessageNum;"
+            "  return true;"
             "}"
             "document.addEventListener('DOMContentLoaded', function() {"
             "  const radios = document.getElementsByName('messageNum');"
@@ -189,7 +188,7 @@ void WebServerManager::handleMessageConfig() {
     html += "<form action='/message-save' method='post'>";
     
     // Message list with radio buttons
-    for(int i = 1; i <= Config::MAX_MESSAGES; i++) {
+    for(int i = 1; i <= config.getMessageCount(); i++) {
         if (String(config.getMessageText(i)).length() > 0) {  // Only show non-empty messages
             html += "<div class='msg-container'>";
             html += "<input type='radio' class='msg-radio' name='messageNum' value='" + 
@@ -214,14 +213,13 @@ void WebServerManager::handleMessageConfig() {
     html += "</form>";
     html += "</div>";
 
-    // Message text editing section with updated form
+    // Updated message text editing section
     html += "<div class='config-section'>";
     html += "<h2>Edit Selected Message</h2>";
-    html += "<form action='/message-text-save' method='post'>";
+    html += "<form action='/message-text-save' method='post' onsubmit='return prepareMessageSubmit(this);'>";
     html += "<input type='hidden' id='messageNumber' name='number' value='" + 
             String(config.getNumeroMessage()) + "'>";
-    html += "<textarea id='messageText' name='text' rows='2' cols='40'>" + 
-            String(config.getMessageText(config.getNumeroMessage())) + "</textarea><br>";
+    html += "<textarea id='messageText' name='text' rows='2' cols='40' placeholder='Select a message to edit'></textarea><br>";
     html += "<input type='submit' value='Save Message' class='btn'>";
     html += "</form>";
     html += "</div>";
@@ -236,30 +234,35 @@ void WebServerManager::handleMessageSave() {
         int messageNum = server.arg("messageNum").toInt();
         
         if (server.hasArg("action")) {
-            // Handle add/remove actions
             String action = server.arg("action");
             Serial.printf("Message action: %s\n", action.c_str());
             
-            if (action == "remove" && messageNum >= 1 && messageNum <= Config::MAX_MESSAGES) {
+            if (action == "remove" && messageNum >= 1 && messageNum <= config.getMessageCount()) {
                 // Remove message and shift others up
-                for (int i = messageNum; i < Config::MAX_MESSAGES; i++) {
+                for (int i = messageNum; i < config.getMessageCount(); i++) {
                     config.setMessageText(i, config.getMessageText(i + 1));
                 }
-                config.setMessageText(Config::MAX_MESSAGES, "");
+                config.setMessageText(config.getMessageCount(), "");
                 
             } else if (action == "add") {
-                // Find first empty slot and add new message
-                for (int i = 1; i <= Config::MAX_MESSAGES; i++) {
-                    if (String(config.getMessageText(i)).length() == 0) {
-                        config.setMessageText(i, "New Message");
-                        break;
-                    }
+                // Add new message at next available index
+                int currentCount = config.getMessageCount();
+                int newIndex = currentCount + 1;
+                config.setMessageCount(newIndex);
+                
+                if (config.setMessageText(newIndex, "New Message")) {
+                    Serial.printf("Added new message at index %d\n", newIndex);
+                    // Message count is automatically updated in setMessageText
+                    config.saveConfig();  // Ensure changes are saved
+                } else {
+                    Serial.println("Failed to add new message");
+                    server.send(500, "text/plain", "Failed to add message");
+                    return;
                 }
             }
-            
         } else {
             // Set active message
-            if (messageNum >= 1 && messageNum <= Config::MAX_MESSAGES) {
+            if (messageNum >= 1 && messageNum <= config.getMessageCount()) {
                 Serial.printf("Setting active message to %d\n", messageNum);
                 config.setNumeroMessage(messageNum);
                 config.saveConfig(); // Explicitly save the configuration
@@ -287,7 +290,7 @@ void WebServerManager::handleMessageTextSave() {
         
         Serial.printf("Saving text for message %d: '%s'\n", number, text.c_str());
         
-        if (number >= 1 && number <= Config::MAX_MESSAGES) {
+        if (number >= 1 && number <= config.getMessageCount()) {
             // Update the message text in config
             if (config.setMessageText(number, text.c_str())) {
                 // Explicitly save configuration to flash
