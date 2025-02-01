@@ -22,16 +22,32 @@ Config::Config() {
 
 // Initialisation de la configuration
 void Config::begin() {
-    if (!LittleFS.begin(true)) {
-        Serial.println("Failed to mount LittleFS");
-        return;
+    Serial.println("Initializing configuration system...");
+    
+    if (!LittleFS.begin(false)) {
+        Serial.println("Failed to mount LittleFS, attempting to format...");
+        if (!LittleFS.begin(true)) {
+            Serial.println("Fatal: Failed to mount and format LittleFS");
+            return;
+        }
+        Serial.println("LittleFS formatted successfully");
+    } else {
+        Serial.println("LittleFS mounted successfully");
     }
-    loadConfig();
+    
+    // Create config file if it doesn't exist
+    if (!LittleFS.exists(CONFIG_FILE)) {
+        Serial.println("No configuration file found, creating default...");
+        saveConfig();  // Save default values from constructor
+    } else {
+        Serial.println("Loading existing configuration...");
+        loadConfig();
+    }
 }
 
 // Chargement de la configuration depuis la mémoire non volatile
 void Config::loadConfig() {
-    StaticJsonDocument<2048> doc;
+    JsonDocument doc;
     
     if (!loadJsonFromFile(doc)) {
         Serial.println("Using default configuration");
@@ -63,7 +79,7 @@ void Config::loadConfig() {
 
 // Sauvegarde de la configuration dans la mémoire non volatile
 void Config::saveConfig() {
-    StaticJsonDocument<2048> doc;
+    JsonDocument doc;
 
     // Save WiFi settings
     doc["wifi_ssid"] = wifi_ssid;
@@ -76,11 +92,11 @@ void Config::saveConfig() {
     doc["numeroMessage"] = numeroMessage;
     doc["message_count"] = message_count;
 
-    // Save messages
-    JsonArray messages_array = doc.createNestedArray("messages");
+    // Save messages using newer API
+    JsonArray messages_array = doc["messages"].to<JsonArray>();
     for (int i = 0; i < MAX_MESSAGES; i++) {
         if (message_defined[i]) {
-            JsonObject msg = messages_array.createNestedObject();
+            JsonObject msg = messages_array.add<JsonObject>();
             msg["id"] = i + 1;
             msg["text"] = messages[i];
         }

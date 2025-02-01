@@ -24,6 +24,9 @@ void setup() {
     Serial.begin(115200);
     Serial.println("Starting ESP32 Balise Sonore...");
     
+    // Initialize configuration
+    config.begin();
+    
     // Initialize WiFi
     if (wifiManager.begin()) {
         Serial.println("WiFi ready");

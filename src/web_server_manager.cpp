@@ -160,7 +160,7 @@ void WebServerManager::handleMessageConfig() {
 
     // Add JavaScript for message selection handling
     html += "<script>"
-            "function updateMessageText(select) {"
+            "function updateMessageText(messageNum) {"
             "  const messages = {";
     // Generate JavaScript object with message texts
     for(int i = 1; i <= Config::MAX_MESSAGES; i++) {
@@ -168,8 +168,20 @@ void WebServerManager::handleMessageConfig() {
         if (i < Config::MAX_MESSAGES) html += ", ";
     }
     html += "};"
-            "  document.getElementById('messageText').value = messages[select.value] || '';"
-            "}</script>";
+            "  document.getElementById('messageText').value = messages[messageNum] || '';"
+            "  document.getElementById('messageNumber').value = messageNum;"
+            "}"
+            "document.addEventListener('DOMContentLoaded', function() {"
+            "  const radios = document.getElementsByName('messageNum');"
+            "  for(let radio of radios) {"
+            "    radio.addEventListener('change', function() {"
+            "      updateMessageText(this.value);"
+            "    });"
+            "  }"
+            "  // Set initial text if a message is selected"
+            "  const selected = document.querySelector('input[name=\"messageNum\"]:checked');"
+            "  if(selected) updateMessageText(selected.value);"
+            "});</script>";
 
     // Message selection with radio buttons and action buttons
     html += "<div class='config-section'>";
@@ -204,15 +216,12 @@ void WebServerManager::handleMessageConfig() {
 
     // Message text editing section with updated form
     html += "<div class='config-section'>";
-    html += "<h2>Edit Message</h2>";
+    html += "<h2>Edit Selected Message</h2>";
     html += "<form action='/message-text-save' method='post'>";
-    html += "<select name='number' onchange='updateMessageText(this)'>";
-    for(int i = 1; i <= Config::MAX_MESSAGES; i++) {
-        html += "<option value='" + String(i) + "'>" + String(i) + "</option>";
-    }
-    html += "</select><br>";
+    html += "<input type='hidden' id='messageNumber' name='number' value='" + 
+            String(config.getNumeroMessage()) + "'>";
     html += "<textarea id='messageText' name='text' rows='2' cols='40'>" + 
-            String(config.getMessageText(1)) + "</textarea><br>";
+            String(config.getMessageText(config.getNumeroMessage())) + "</textarea><br>";
     html += "<input type='submit' value='Save Message' class='btn'>";
     html += "</form>";
     html += "</div>";
