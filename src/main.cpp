@@ -1,21 +1,30 @@
+/**
+ * ESP32 Balise Sonore
+ * 
+ * Main program file that initializes and manages:
+ * - Configuration system
+ * - WiFi connection
+ * - Web interface
+ * 
+ * The device can operate in either Access Point or Station mode
+ * and provides a web interface for configuration.
+ */
+
 #include <Arduino.h>
 #include "wifi_manager.h"
 #include "web_server_manager.h"
 #include "Config.h"
 
-
-// Initialisation des objets de gestion
+// Initialize management objects
 Config config;
-// Create as Access Point
 WiFiManager wifiManager(config);
-// Or create as Station
-// WiFiManager wifiManager("YourSSID", "YourPassword", true);
-
 WebServerManager webServer(config);
 
 void setup() {
     Serial.begin(115200);
+    Serial.println("Starting ESP32 Balise Sonore...");
     
+    // Initialize WiFi
     if (wifiManager.begin()) {
         Serial.println("WiFi ready");
         Serial.println("IP: " + wifiManager.getIP());
@@ -27,5 +36,5 @@ void setup() {
 
 void loop() {
     webServer.handleClient();
-    sleep(2);
+    sleep(2);  // Prevent watchdog reset
 }
