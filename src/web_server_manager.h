@@ -56,6 +56,9 @@ public:
     
     /** Process message configuration form submission */
     void handleMessageSave();
+
+    /** Process message configuration form submission */
+    void handleMessageTextSave();
 };
 
 #endif

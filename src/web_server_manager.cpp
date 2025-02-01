@@ -36,6 +36,7 @@ void WebServerManager::setupRoutes() {
     server.on("/wifi-save", HTTP_POST, [this]() { this->handleWifiSave(); });
     server.on("/message", [this]() { this->handleMessageConfig(); });
     server.on("/message-save", HTTP_POST, [this]() { this->handleMessageSave(); });
+    server.on("/message-text-save", HTTP_POST, [this]() { this->handleMessageTextSave(); });
     server.onNotFound([this]() { this->handleNotFound(); });
 }
 
@@ -44,7 +45,8 @@ void WebServerManager::handleRoot() {
     html += "<p>Current configuration:</p>";
     html += "<p>WiFi Mode: " + String(config.isAccessPoint() ? "Access Point" : "Station") + "</p>";
     html += "<p>SSID: " + String(config.getWifiSSID()) + "</p>";
-    html += "<p>Message Number: " + String(config.getNumeroMessage()) + "</p>";
+    html += "<p>Active Message: " + String(config.getNumeroMessage()) + "</p>";
+    html += "<p>Message Text: " + String(config.getMessageText(config.getNumeroMessage())) + "</p>";
     html += getFooter();
     server.send(200, "text/html", html);
 }
@@ -93,11 +95,26 @@ void WebServerManager::handleWifiSave() {
 
 void WebServerManager::handleMessageConfig() {
     String html = getHeader("Message Configuration");
+    
+    // Message selection
     html += "<form action='/message-save' method='post'>";
-    html += "Message Number (1-9): <input type='number' name='messageNum' min='1' max='9' value='" + 
+    html += "Active Message Number (1-9): <input type='number' name='messageNum' min='1' max='9' value='" + 
             String(config.getNumeroMessage()) + "'><br><br>";
-    html += "<input type='submit' value='Save' class='btn'>";
-    html += "</form>";
+    html += "<input type='submit' value='Set Active Message' class='btn'>";
+    html += "</form><br><hr><br>";
+    
+    // Message text editing
+    html += "<h2>Message Texts</h2>";
+    for(int i = 1; i <= Config::MAX_MESSAGES; i++) {
+        html += "<form action='/message-text-save' method='post'>";
+        html += "<input type='hidden' name='number' value='" + String(i) + "'>";
+        html += "Message " + String(i) + ":<br>";
+        html += "<textarea name='text' rows='2' cols='40'>" + 
+                String(config.getMessageText(i)) + "</textarea><br>";
+        html += "<input type='submit' value='Save Message " + String(i) + "' class='btn'>";
+        html += "</form><br>";
+    }
+    
     html += getFooter();
     server.send(200, "text/html", html);
 }
@@ -108,6 +125,23 @@ void WebServerManager::handleMessageSave() {
         if (messageNum >= 1 && messageNum <= 9) {
             config.setNumeroMessage(messageNum);
             server.sendHeader("Location", "/");
+            server.send(303);
+        } else {
+            server.send(400, "text/plain", "Invalid message number");
+        }
+    } else {
+        server.send(400, "text/plain", "Missing parameters");
+    }
+}
+
+void WebServerManager::handleMessageTextSave() {
+    if (server.hasArg("number") && server.hasArg("text")) {
+        int number = server.arg("number").toInt();
+        String text = server.arg("text");
+        
+        if (number >= 1 && number <= Config::MAX_MESSAGES) {
+            config.setMessageText(number, text.c_str());
+            server.sendHeader("Location", "/message");
             server.send(303);
         } else {
             server.send(400, "text/plain", "Invalid message number");

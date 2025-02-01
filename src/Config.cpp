@@ -12,6 +12,11 @@ Config::Config() {
     access_point = true;
     wifi_channel = 6;
     hidden_ssid = false;
+    message_count = 1;
+    for(int i = 0; i < MAX_MESSAGES; i++) {
+        message_defined[i] = false;
+        strcpy(messages[i], getDefaultMessage(i + 1));
+    }
 }
 
 // Initialisation de la configuration
@@ -33,6 +38,16 @@ void Config::loadConfig() {
     
     strcpy(wifi_ssid, ssid.c_str());
     strcpy(wifi_password, password.c_str());
+
+    message_count = preferences.getInt("message_count", 1);
+    for(int i = 0; i < MAX_MESSAGES; i++) {
+        char key[16];
+        snprintf(key, sizeof(key), "message_%d", i + 1);
+        String msg = preferences.getString(key, String(getDefaultMessage(i + 1)));
+        strncpy(messages[i], msg.c_str(), MAX_MESSAGE_LENGTH - 1);
+        messages[i][MAX_MESSAGE_LENGTH - 1] = '\0';
+        message_defined[i] = msg.length() > 0;
+    }
 }
 
 // Sauvegarde de la configuration dans la mémoire non volatile
@@ -45,6 +60,15 @@ void Config::saveConfig() {
     preferences.putBool("access_point", access_point);
     preferences.putUChar("wifi_channel", wifi_channel);
     preferences.putBool("hidden_ssid", hidden_ssid);
+
+    preferences.putInt("message_count", message_count);
+    for(int i = 0; i < MAX_MESSAGES; i++) {
+        if (message_defined[i]) {
+            char key[16];
+            snprintf(key, sizeof(key), "message_%d", i + 1);
+            preferences.putString(key, messages[i]);
+        }
+    }
 }
 
 // Retourne le numéro du message
@@ -88,4 +112,28 @@ void Config::setWifiAdvanced(uint8_t channel, bool hidden) {
     wifi_channel = channel;
     hidden_ssid = hidden;
     saveConfig();
+}
+
+const char* Config::getMessageText(int number) const {
+    if (number < 1 || number > MAX_MESSAGES) return "";
+    return messages[number - 1];
+}
+
+bool Config::setMessageText(int number, const char* text) {
+    if (number < 1 || number > MAX_MESSAGES) return false;
+    strncpy(messages[number - 1], text, MAX_MESSAGE_LENGTH - 1);
+    message_defined[number - 1] = true;
+    if (number > message_count) message_count = number;
+    saveConfig();
+    return true;
+}
+
+int Config::getMessageCount() const {
+    return message_count;
+}
+
+const char* Config::getDefaultMessage(int number) const {
+    static char default_msg[32];
+    snprintf(default_msg, sizeof(default_msg), "Message %d - Default Text", number);
+    return default_msg;
 }
