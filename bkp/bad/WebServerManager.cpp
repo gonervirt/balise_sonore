@@ -1,7 +1,7 @@
 #include "WebServerManager.h"
 #include "Arduino.h"
 
-WebServerManager::WebServerManager(TonePlayer& tonePlayer, Config& config) : server(80), tonePlayer(tonePlayer), config(config) {}
+WebServerManager::WebServerManager(Config& config) : server(80), config(config) {}
 
 void WebServerManager::begin() {
     setupRoutes();
@@ -59,7 +59,8 @@ void WebServerManager::setupRoutes() {
     server.on("/volume", HTTP_GET, [this](AsyncWebServerRequest *request) {
         if (request->hasParam("value")) {
             int volume = request->getParam("value")->value().toInt();
-            tonePlayer.adjustVolume(volume);
+            //tonePlayer.adjustVolume(volume);
+            Serial.println("Volume ajusté à : " + volume);
             request->send(200, "text/plain", "Volume adjusted");
         } else {
             request->send(400, "text/plain", "Missing volume value");
@@ -69,7 +70,9 @@ void WebServerManager::setupRoutes() {
     server.on("/inhibit", HTTP_GET, [this](AsyncWebServerRequest *request) {
         if (request->hasParam("value")) {
             double duration = request->getParam("value")->value().toDouble();
-            tonePlayer.adjustInhibitDuration(duration);
+            //tonePlayer.adjustInhibitDuration(duration);
+            String durationStr = String(duration, 2); // Convert double to String with 2 decimal places
+            Serial.println("Durée d'inhibition ajustée à : " + durationStr);
             request->send(200, "text/plain", "Inhibit duration adjusted");
         } else {
             request->send(400, "text/plain", "Missing inhibit duration value");

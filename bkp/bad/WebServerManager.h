@@ -3,12 +3,12 @@
 
 #include <ESPAsyncWebServer.h>
 //#include <WiFi.h>
-#include "TonePlayer.h"
+//#include "TonePlayer.h"
 #include "Config.h"
 
 class WebServerManager {
 public:
-    WebServerManager(TonePlayer& tonePlayer, Config& config);
+    WebServerManager (Config& config);
     void begin();
     void handleClient();
     int getNumeroMessage() const;
@@ -16,7 +16,6 @@ public:
 private:
     AsyncWebServer server;
     //WiFiServer server;
-    TonePlayer& tonePlayer;
     Config& config;
     void setupRoutes();
 };
