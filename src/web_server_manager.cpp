@@ -64,7 +64,7 @@ void WebServerManager::setupRoutes() {
 
 void WebServerManager::handleRoot() {
     Serial.println("Handling root page request");
-    String html = getHeader("Potail balise sonore");
+    String html = getHeader("Portail balise sonore");
     
     html += "<div class='config-section'>";
     html += "<h2>Current Configuration</h2>";
@@ -325,7 +325,7 @@ void WebServerManager::handleMessageTextSave() {
 
 void WebServerManager::handleEsp32Config() {
     Serial.println("Handling ESP32 configuration page request");
-    String html = getHeader("ESP32 onfig");
+    String html = getHeader("ESP32 Config");
     
     html += "<div class='config-section'>";
     html += "<h2>System Information</h2>";
