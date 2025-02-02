@@ -20,9 +20,20 @@ Config config;
 WiFiManager wifiManager(config);
 WebServerManager webServer(config);
 
+// Wait for Serial with timeout
+void waitForSerial(unsigned long timeout_ms = 10000) {
+    unsigned long start = millis();
+    while (!Serial && (millis() - start) < timeout_ms) {
+        delay(100);
+    }
+}
+
 void setup() {
     Serial.begin(115200);
-    Serial.println("Starting ESP32 Balise Sonore...");
+    waitForSerial();  // Wait up to 10 seconds for Serial
+    
+    Serial.println("\n\nStarting ESP32 Balise Sonore...");
+    Serial.printf("Compile time: %s %s\n", __DATE__, __TIME__);
     
     // Initialize configuration
     config.begin();

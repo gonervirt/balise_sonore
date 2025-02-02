@@ -218,3 +218,26 @@ const char* Config::getDefaultMessage(int number) const {
     snprintf(default_msg, sizeof(default_msg), "Message %d - Default Text", number);
     return default_msg;
 }
+
+bool Config::removeLatestMessage() {
+    if (message_count <= 1) {
+        Serial.println("Cannot remove last message, minimum one message required");
+        return false;
+    }
+
+    // Clear the last message
+    messages[message_count - 1][0] = '\0';
+    message_defined[message_count - 1] = false;
+    
+    // Decrement message count
+    message_count--;
+    
+    // If active message was the removed one, update it
+    if (numeroMessage > message_count) {
+        numeroMessage = message_count;
+    }
+    
+    Serial.printf("Removed message %d, new message count: %d\n", message_count + 1, message_count);
+    saveConfig();
+    return true;
+}

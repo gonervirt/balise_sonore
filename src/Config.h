@@ -84,6 +84,9 @@ public:
     /** Set number of defined messages */
     void setMessageCount(int number) ;
 
+    /** Remove the latest message and decrement message count */
+    bool removeLatestMessage();
+
 private:
     int numeroMessage;
     char wifi_ssid[32];
