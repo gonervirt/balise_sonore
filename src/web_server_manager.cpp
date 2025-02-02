@@ -1,5 +1,9 @@
 #include "web_server_manager.h"
 
+#ifndef FIRMWARE_VERSION
+#define FIRMWARE_VERSION "development"
+#endif
+
 WebServerManager::WebServerManager(Config& config, int port) 
     : server(port), config(config) {
 }
@@ -20,7 +24,8 @@ String WebServerManager::getHeader(const char* title) {
     html += "<h1>" + String(title) + "</h1>";
     html += "<nav><a href='/' class='btn'>Home</a> ";
     html += "<a href='/wifi' class='btn'>WiFi Config</a> ";
-    html += "<a href='/message' class='btn'>Message Config</a></nav><br>";
+    html += "<a href='/message' class='btn'>Message Config</a> ";
+    html += "<a href='/esp32' class='btn'>ESP32 Config</a></nav><br>";
     return html;
 }
 
@@ -51,6 +56,8 @@ void WebServerManager::setupRoutes() {
     server.on("/message", [this]() { this->handleMessageConfig(); });
     server.on("/message-save", HTTP_POST, [this]() { this->handleMessageSave(); });
     server.on("/message-text-save", HTTP_POST, [this]() { this->handleMessageTextSave(); });
+    server.on("/esp32", [this]() { this->handleEsp32Config(); });
+    server.on("/esp32-action", HTTP_POST, [this]() { this->handleEsp32Action(); });
     server.onNotFound([this]() { this->handleNotFound(); });
     Serial.println("Routes configured successfully");
 }
@@ -328,6 +335,59 @@ void WebServerManager::handleMessageTextSave() {
     } else {
         Serial.println("Error: Missing message text parameters");
         server.send(400, "text/plain", "Missing parameters");
+    }
+}
+
+void WebServerManager::handleEsp32Config() {
+    Serial.println("Handling ESP32 configuration page request");
+    String html = getHeader("ESP32 Configuration");
+    
+    html += "<div class='config-section'>";
+    html += "<h2>System Information</h2>";
+    html += formatConfigItem("Firmware Version", FIRMWARE_VERSION);
+    html += formatConfigItem("Compile Date", __DATE__);
+    html += formatConfigItem("Compile Time", __TIME__);
+    html += "</div>";
+
+    html += "<div class='config-section'>";
+    html += "<h2>System Actions</h2>";
+    html += "<form action='/esp32-action' method='post' style='display:flex; gap:10px;'>";
+    html += "<button type='submit' name='action' value='reset' class='btn' "
+            "onclick='return confirm(\"Are you sure you want to reboot the ESP32?\")'>Reboot ESP32</button>";
+    html += "<button type='submit' name='action' value='clear' class='btn' "
+            "style='background:#e74c3c;' "
+            "onclick='return confirm(\"Are you sure you want to clear all configuration?\")'>Clear Configuration</button>";
+    html += "</form>";
+    html += "</div>";
+    
+    html += getFooter();
+    server.send(200, "text/html", html);
+}
+
+void WebServerManager::handleEsp32Action() {
+    if (server.hasArg("action")) {
+        String action = server.arg("action");
+        
+        if (action == "reset") {
+            Serial.println("Rebooting ESP32...");
+            server.send(200, "text/plain", "Rebooting...");
+            delay(500);
+            ESP.restart();
+        }
+        else if (action == "clear") {
+            Serial.println("Clearing configuration...");
+            if (LittleFS.remove("/config.json")) {
+                Serial.println("Configuration file removed");
+                server.send(200, "text/plain", "Configuration cleared. Rebooting...");
+                delay(500);
+                ESP.restart();
+            } else {
+                Serial.println("Failed to remove configuration file");
+                server.send(500, "text/plain", "Failed to clear configuration");
+            }
+        }
+    } else {
+        server.send(400, "text/plain", "Missing action parameter");
     }
 }
 

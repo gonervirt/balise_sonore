@@ -60,6 +60,12 @@ public:
     /** Process message configuration form submission */
     void handleMessageTextSave();
 
+    /** Handle ESP32 configuration page */
+    void handleEsp32Config();
+    
+    /** Handle ESP32 actions (reset/clear config) */
+    void handleEsp32Action();
+
     String formatConfigItem(const char* label, const String& value);
 };
 
