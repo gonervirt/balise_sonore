@@ -64,7 +64,7 @@ void WebServerManager::setupRoutes() {
 
 void WebServerManager::handleRoot() {
     Serial.println("Handling root page request");
-    String html = getHeader("ESP32 Web Server");
+    String html = getHeader("Potail balise sonore");
     
     html += "<div class='config-section'>";
     html += "<h2>Current Configuration</h2>";
@@ -213,7 +213,6 @@ void WebServerManager::handleMessageConfig() {
     html += "<div class='button-container'>";
     html += "<div class='button-group'>";
     html += "<button type='submit' name='action' value='setActive' class='btn'>Set Active Message</button>";
-    html += "<button type='submit' name='action' value='saveMessage' class='btn'>Save Message</button>";
     html += "</div>";
     html += "<div class='button-group'>";
     html += "<button type='submit' name='action' value='add' class='btn'>Add New Message</button>";
@@ -261,21 +260,7 @@ void WebServerManager::handleMessageSave() {
                     return;
                 }
             }
-            else if (action == "saveMessage") {
-                // Save message text
-                if (server.hasArg("text")) {
-                    String text = server.arg("text");
-                    if (config.setMessageText(messageNum, text.c_str())) {
-                        Serial.printf("Saved text for message %d\n", messageNum);
-                        config.saveConfig();
-                    } else {
-                        Serial.println("Error: Failed to save message text");
-                        server.send(500, "text/plain", "Failed to save message");
-                        return;
-                    }
-                }
-            }
-            else if (action == "remove" && messageNum >= 1 && messageNum <= config.getMessageCount()) {
+            else if (action == "remove" && messageNum >= 1) {
                 // Remove message and shift others up
                 for (int i = messageNum; i < config.getMessageCount(); i++) {
                     config.setMessageText(i, config.getMessageText(i + 1));
@@ -339,8 +324,8 @@ void WebServerManager::handleMessageTextSave() {
 }
 
 void WebServerManager::handleEsp32Config() {
-    Serial.println("Handling Balise sonore ESP32 configuration page request");
-    String html = getHeader("Balise sonore - Configuration");
+    Serial.println("Handling ESP32 configuration page request");
+    String html = getHeader("ESP32 onfig");
     
     html += "<div class='config-section'>";
     html += "<h2>System Information</h2>";
