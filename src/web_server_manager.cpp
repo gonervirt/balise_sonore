@@ -339,8 +339,8 @@ void WebServerManager::handleMessageTextSave() {
 }
 
 void WebServerManager::handleEsp32Config() {
-    Serial.println("Handling ESP32 configuration page request");
-    String html = getHeader("ESP32 Configuration");
+    Serial.println("Handling Balise sonore ESP32 configuration page request");
+    String html = getHeader("Balise sonore - Configuration");
     
     html += "<div class='config-section'>";
     html += "<h2>System Information</h2>";

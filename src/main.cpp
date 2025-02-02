@@ -15,6 +15,10 @@
 #include "web_server_manager.h"
 #include "Config.h"
 
+#ifndef FIRMWARE_VERSION
+#define FIRMWARE_VERSION "development"
+#endif
+
 // Initialize management objects
 Config config;
 WiFiManager wifiManager(config);
@@ -33,7 +37,7 @@ void setup() {
     waitForSerial();  // Wait up to 10 seconds for Serial
     
     Serial.println("\n\nStarting ESP32 Balise Sonore...");
-    Serial.printf("Compile time: %s %s\n", __DATE__, __TIME__);
+    Serial.printf("Version %s Compile time: %s %s\n", FIRMWARE_VERSION, __DATE__, __TIME__);
     
     // Initialize configuration
     config.begin();
