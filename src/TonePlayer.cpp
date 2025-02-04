@@ -20,8 +20,8 @@ void TonePlayer::begin() {
 }
 
 void TonePlayer::playTone(int messageNumber) {
-    Serial.println("playTone update called");
     if (! playing && ! inhibited) {
+        Serial.println("playTone " + String(messageNumber));
         myMP3player.play(messageNumber);
         playing = true;
     } else notifyListeners();
