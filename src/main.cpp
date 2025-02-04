@@ -13,16 +13,30 @@
 #include <Arduino.h>
 #include "wifi_manager.h"
 #include "web_server_manager.h"
+#include "PushButtonManager.h"
+#include "LedManager.h"
+#include "TonePlayer.h"
 #include "Config.h"
 
 #ifndef FIRMWARE_VERSION
 #define FIRMWARE_VERSION "development"
 #endif
 
+// Définition des broches pour la communication et les LEDs
+#define RXD2 20  // RX2 pour communiquer avec MP3
+#define TXD2 21  // TX2 pour communiquer avec MP3
+#define BUTTON_PIN 6 // Définir la broche pour le bouton poussoir
+#define GREEN_LED_PIN 2
+#define YELLOW_LED_PIN 1
+#define RED_LED_PIN 0
+
 // Initialize management objects
 Config config;
 WiFiManager wifiManager(config);
 WebServerManager webServer(config);
+TonePlayer tonePlayer(RXD2, TXD2);
+PushButtonManager pushButtonManager(BUTTON_PIN);
+LedManager ledManager(GREEN_LED_PIN, YELLOW_LED_PIN, RED_LED_PIN);
 
 // Wait for Serial with timeout
 void waitForSerial(unsigned long timeout_ms = 10000) {
