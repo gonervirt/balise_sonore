@@ -55,6 +55,9 @@ void setup() {
     
     // Initialize configuration
     config.begin();
+
+    ledManager.begin(); // Initialisation du gestionnaire de LEDs
+    Serial.println("LedManager initialized"); 
     
     // Initialize WiFi
     if (wifiManager.begin()) {
@@ -64,9 +67,33 @@ void setup() {
     } else {
         Serial.println("WiFi failed!");
     }
+
+    tonePlayer.begin(); // Initialisation du lecteur de tonalité
+    Serial.println("TonePlayer initialized");
+
+    pushButtonManager.begin(); // Initialisation du gestionnaire de bouton poussoir
+    Serial.println("PushButtonManager initialized");    
+
+
+    // register listener
+    tonePlayer.addListener(&pushButtonManager); // Enregistrer le gestionnaire de bouton poussoir comme écouteur
+    Serial.println("PushButtonManager listener added");
+    //tonePlayer.addListener(&radioMessageHandler); // Enregistrer le gestionnaire de messages radio comme écouteur
+    //Serial.println("RadioMessageHandler listener added"); 
 }
 
 void loop() {
     webServer.handleClient();
+
+    pushButtonManager.update(); // Mise à jour de l'état du bouton poussoir
+    tonePlayer.update(); // Mise à jour du lecteur de tonalité
+
+     // Gestion de la lecture des tonalités et des LEDs
+     if (pushButtonManager.isButtonPressed()) {
+            Serial.println("Playing tone for button press");
+            tonePlayer.playTone(config.getNumeroMessage()); // Lecture de la tonalité lorsque le bouton est pressé
+            ledManager.setYellow(); // LED jaune pendant la lecture
+    } 
+
     sleep(2);  // Prevent watchdog reset
 }
