@@ -5,16 +5,22 @@
 TonePlayer::TonePlayer(int _rxd2, int _txd2) : volume(15), inhibitDuration(2000), playing(false), inhibited(false), inhibitStartTime(0) {
     rxd2 = _rxd2;
     txd2 = _txd2;
+    serial2player = new SoftwareSerial(rxd2, txd2);
+}
+
+TonePlayer::~TonePlayer() {
+    if (serial2player) {
+        delete serial2player;
+        serial2player = nullptr;
+    }
 }
 
 void TonePlayer::begin() {
-    //static HardwareSerial serial2player(0); // Ensure the serial object is static to maintain scope
-    //serial2player.begin(9600, SERIAL_8N1, rxd2, txd2);
-    SoftwareSerial serial2player ( rxd2, txd2);
-    serial2player.begin(9600);
+    serial2player->begin(9600);
     myMP3player.setTimeOut(1000); //donne plus de temps pour lire les informations
-    myMP3player.begin(serial2player, /*isACK = */true, /*doReset = */true);
+    myMP3player.begin(*serial2player, /*isACK = */true, /*doReset = */true);
     Serial.println(F("Waiting DF player"));
+    delay(1000);
     myMP3player.reset();
     while (!myMP3player.available()) {
         Serial.print(F("."));
@@ -25,21 +31,36 @@ void TonePlayer::begin() {
     Serial.println(F("DFPlayer Mini online."));
 
     myMP3player.enableDAC();
-    myMP3player.volume(volume);
-    myMP3player.play(1);
-    
+    //myMP3player.volume(volume);
+    adjustVolume(volume);
+    playTone(3);
+    /*
+    this->myMP3player.play(1);
+    delay(5000);
+    Serial.println(F("message 1 joué."));
+    this->myMP3player.play(2);
+    delay(5000);
+    playTone(3);
+    delay(5000);
+    Serial.println(F("message 2 joué."));
+    */
 }
 
 void TonePlayer::playTone(int messageNumber) {
+    Serial.println("playing Tone " + String(messageNumber));
+    myMP3player.play(messageNumber);
+    Serial.println("tone playing...");
+    /*
     Serial.println("playTone called");
     if (! playing && ! inhibited) {
         Serial.println("playTone " + String(messageNumber));
         myMP3player.play(messageNumber);
         playing = true;
+        notifyListeners();
     } else {
         Serial.println("can't play playTone : playing " + String(playing)+ " - inhibited "+String(inhibited));
         //notifyListeners();
-    }
+    }*/
 }
 
 void TonePlayer::adjustVolume(int volume) {
@@ -81,7 +102,7 @@ void TonePlayer::update() {
     if (inhibited && (millis() - inhibitStartTime) > inhibitDuration) {
         Serial.println("Inhibit period ended");
         inhibited = false;
-        //notifyListeners();
+        notifyListeners();
     }
 
     

@@ -11,11 +11,13 @@ public:
     void begin();
     void update();
     bool isButtonPressed() const;
+    void releaseButtonPressed();
     void onToneFinished() override;
 
 private:
     uint8_t pin;
     bool buttonPressed;
+    bool buttonLocked;
 };
 
 #endif // PUSHBUTTONMANAGER_H

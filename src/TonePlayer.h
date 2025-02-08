@@ -4,6 +4,7 @@
 #include "Arduino.h"
 #include <DFRobotDFPlayerMini.h>
 #include <vector>
+#include <SoftwareSerial.h>
 
 class TonePlayerListener {
 public:
@@ -13,6 +14,7 @@ public:
 class TonePlayer {
 public:
     TonePlayer(int rxd2, int txd2);
+    ~TonePlayer();  // Add destructor declaration
     void begin();
     void playTone(int messageNumber);
     void adjustVolume(int volume);
@@ -33,7 +35,8 @@ private:
     bool inhibited;
     unsigned long inhibitStartTime;
     std::vector<TonePlayerListener*> listeners;
-
+    SoftwareSerial* serial2player;  // Add this line
+    
     void notifyListeners();
 };
 

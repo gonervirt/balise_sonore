@@ -38,13 +38,6 @@ TonePlayer tonePlayer(RXD2, TXD2);
 PushButtonManager pushButtonManager(BUTTON_PIN);
 LedManager ledManager(GREEN_LED_PIN, YELLOW_LED_PIN, RED_LED_PIN);
 
-// Add debug timing variables
-unsigned long lastLoopTime = 0;
-unsigned long currentTime = 0;
-unsigned long webServerTime = 0;
-unsigned long buttonTime = 0;
-unsigned long playerTime = 0;
-unsigned long totalLoopTime = 0;
 
 // Wait for Serial with timeout
 void waitForSerial(unsigned long timeout_ms = 10000) {
@@ -77,43 +70,33 @@ void setup() {
     }
 
     tonePlayer.begin(); // Initialisation du lecteur de tonalité
+    delay(5000);
     Serial.println("TonePlayer initialized");
-    tonePlayer.update();
-    Serial.println("TonePlayer updated");
+    //tonePlayer.update();
+    //Serial.println("TonePlayer updated");
+    tonePlayer.playTone(1);
 
     pushButtonManager.begin(); // Initialisation du gestionnaire de bouton poussoir
     Serial.println("PushButtonManager initialized");    
 
 
     // register listener
-    //tonePlayer.addListener(&pushButtonManager); // Enregistrer le gestionnaire de bouton poussoir comme écouteur
-    //Serial.println("PushButtonManager listener added");
+    tonePlayer.addListener(&pushButtonManager); // Enregistrer le gestionnaire de bouton poussoir comme écouteur
+    Serial.println("PushButtonManager listener added");
     //tonePlayer.addListener(&radioMessageHandler); // Enregistrer le gestionnaire de messages radio comme écouteur
     //Serial.println("RadioMessageHandler listener added"); 
 }
 
 void loop() {
-    currentTime = millis();
-    
-    // Web Server handling
-    unsigned long startTime = micros();
+    // Webserver handling
     webServer.handleClient();
-    webServerTime = micros() - startTime;
-    //Serial.printf("[%lu] Web server time: %lu us\n", currentTime, webServerTime);
 
     // Button handling
-    startTime = micros();
     pushButtonManager.update();
-    buttonTime = micros() - startTime;
-    //Serial.printf("[%lu] Button handling time: %lu us\n", currentTime, buttonTime);
 
     // Player handling
-    startTime = micros();
-    //Serial.println("TonePlayer update called");
     tonePlayer.update();
-    //Serial.println("TonePlayer update finished");
-    playerTime = micros() - startTime;
-    //Serial.printf("[%lu] Player handling time: %lu us\n", currentTime, playerTime);
+
 
     // Tone and LED management
     if (pushButtonManager.isButtonPressed()) {
@@ -121,26 +104,9 @@ void loop() {
         Serial.println(String (config.getNumeroMessage()));
         ledManager.setYellow();
         tonePlayer.playTone(config.getNumeroMessage());
-        
+        pushButtonManager.releaseButtonPressed();
     }
-    //Serial.printf("[%lu] Button pressed: %d\n", currentTime, pushButtonManager.isButtonPressed());
-
-    // Calculate total loop time
-    totalLoopTime = millis() - currentTime;
-
-    delay(100);  // Prevent watchdog reset 100ms
-
-    // Print timing information every second
-    /*
-    if (millis() - lastLoopTime >= 1000) {
-        Serial.printf("[%lu] Timing (us) - Web: %lu, Button: %lu, Player: %lu, Total: %lu ms\n",
-                     currentTime,
-                     webServerTime,
-                     buttonTime,
-                     playerTime,
-                     totalLoopTime);
-        lastLoopTime = millis();
-    }
-*/
+   
+    delay(5);  // Prevent watchdog reset 100ms
    
 }
