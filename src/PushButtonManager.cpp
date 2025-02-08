@@ -11,6 +11,7 @@ void PushButtonManager::begin() {
 
 // Mise à jour de l'état du bouton poussoir
 void PushButtonManager::update() {
+    //Serial.println("debug buttonPressed: " + String(buttonPressed) + " buttonLocked: " + String(buttonLocked));
     bool buttonState = digitalRead(pin) == LOW;
     if (!buttonState && !buttonLocked) {
         buttonPressed = true;
@@ -35,5 +36,6 @@ void PushButtonManager::onToneFinished() {
 // Réinitialise l'état du bouton poussoir lorsque la tonalité est terminée
 void PushButtonManager::releaseButtonPressed() {
     buttonPressed = false;
+    buttonLocked = false;
     Serial.println("release button pressed");
 }

@@ -1,3 +1,5 @@
 In web_server_manager.cpp, when selecting the message number, is it possibel to have all message in text display and add a radia button to select only one fo them. The selected one will have another background color. If a css have to be modified, it should be included in the class file.
 
 In web_server_manager.cpp, coudl you add button to add or remove a message with its messageNum. if needed, you shoul denumber the messagea must go from 1 to latest message number.
+
+in the main.cpp, function loop, couldyou implement a state machine that will make manage the life of the application, States are: STARTING (that will play a message number 3, saying that application is starting, running also the web server). This state will be 30s, newt a state "READY, WAITING", where need wait for push button., other state "PLAYING TONE", where the Tone is played after the button is pushed, then state, "INIBITED", a period of time of about 10s, bore coming back to READY_WAITING state

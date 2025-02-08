@@ -30,6 +30,18 @@
 #define YELLOW_LED_PIN 1
 #define RED_LED_PIN 0
 
+// Add state machine enum
+enum AppState {
+    STARTING,
+    READY_WAITING,
+    PLAYING_TONE,
+    INHIBITED
+};
+
+// Add state machine variables after other defines
+#define STARTING_DURATION 30000    // 30 seconds for starting state
+#define INHIBIT_DURATION 10000     // 10 seconds for inhibit state
+
 // Initialize management objects
 Config config;
 WiFiManager wifiManager(config);
@@ -38,6 +50,14 @@ TonePlayer tonePlayer(RXD2, TXD2);
 PushButtonManager pushButtonManager(BUTTON_PIN);
 LedManager ledManager(GREEN_LED_PIN, YELLOW_LED_PIN, RED_LED_PIN);
 
+// Add state machine variables
+AppState currentState = STARTING;
+unsigned long stateStartTime = 0;
+bool stateInitialized = false;
+
+// Add after other state machine variables
+unsigned long lastToneUpdateTime = 0;
+const unsigned long TONE_UPDATE_INTERVAL = 1000; // 1 second interval
 
 // Wait for Serial with timeout
 void waitForSerial(unsigned long timeout_ms = 10000) {
@@ -74,39 +94,161 @@ void setup() {
     Serial.println("TonePlayer initialized");
     //tonePlayer.update();
     //Serial.println("TonePlayer updated");
-    tonePlayer.playTone(1);
+    //tonePlayer.playTone(1);
 
     pushButtonManager.begin(); // Initialisation du gestionnaire de bouton poussoir
     Serial.println("PushButtonManager initialized");    
 
 
     // register listener
-    tonePlayer.addListener(&pushButtonManager); // Enregistrer le gestionnaire de bouton poussoir comme écouteur
-    Serial.println("PushButtonManager listener added");
+    //tonePlayer.addListener(&pushButtonManager); // Enregistrer le gestionnaire de bouton poussoir comme écouteur
+    //Serial.println("PushButtonManager listener added");
     //tonePlayer.addListener(&radioMessageHandler); // Enregistrer le gestionnaire de messages radio comme écouteur
     //Serial.println("RadioMessageHandler listener added"); 
+
+    stateStartTime = millis();  // Initialize state timing
 }
 
 void loop() {
-    // Webserver handling
     webServer.handleClient();
 
-    // Button handling
-    pushButtonManager.update();
+    // State machine
+    switch(currentState) {
+        case STARTING:
+            /* Entry actions:
+             * - Play welcome message (tone 3)
+             * 
+             * Recurring actions:
+             * - None
+             * 
+             * Exit condition:
+             * - After 30 seconds (STARTING_DURATION)
+             * - Transitions to READY_WAITING
+             */
+            if (!stateInitialized) {
+                Serial.println("State: STARTING");
+                tonePlayer.playTone(4);
+                ledManager.setYellow();
+                stateInitialized = true;
+            }
 
-    // Player handling
-    tonePlayer.update();
+            // recurring
+            webServer.handleClient();
+            // Rate-limited tone player update
+            if (millis() - lastToneUpdateTime >= TONE_UPDATE_INTERVAL) {
+                tonePlayer.update();
+                lastToneUpdateTime = millis();
+            }
 
+            if (!tonePlayer.isPlaying()) {
+                currentState = READY_WAITING;
+                stateStartTime = millis();
+                stateInitialized = false;
+            }
+            
+            if (millis() - stateStartTime >= STARTING_DURATION) {
+                currentState = READY_WAITING;
+                stateStartTime = millis();
+                stateInitialized = false;
+            }
+            break;
 
-    // Tone and LED management
-    if (pushButtonManager.isButtonPressed()) {
-        Serial.println("Playing tone for button press");
-        Serial.println(String (config.getNumeroMessage()));
-        ledManager.setYellow();
-        tonePlayer.playTone(config.getNumeroMessage());
-        pushButtonManager.releaseButtonPressed();
+        case READY_WAITING:
+            /* Entry actions:
+             * - Set LED to green
+             * 
+             * Recurring actions:
+             * - Check for button press
+             * 
+             * Exit condition:
+             * - Button is pressed
+             * - Transitions to PLAYING_TONE
+             */
+            if (!stateInitialized) {
+                Serial.println("State: READY_WAITING");
+                ledManager.setGreen();
+                stateInitialized = true;
+            }
+            // recurring
+            pushButtonManager.update();
+            webServer.handleClient();
+
+            if (pushButtonManager.isButtonPressed()) {
+                currentState = PLAYING_TONE;
+                stateStartTime = millis();
+                stateInitialized = false;
+                pushButtonManager.releaseButtonPressed();
+            }
+            break;
+
+        case PLAYING_TONE:
+            /* Entry actions:
+             * - Set LED to yellow
+             * - Start playing configured message
+             * 
+             * Recurring actions:
+             * - Check if tone has finished playing (rate limited to once per second)
+             * 
+             * Exit condition:
+             * - Tone finishes playing
+             * - Transitions to INHIBITED
+             */
+            if (!stateInitialized) {
+                Serial.println("State: PLAYING_TONE");
+                ledManager.setYellow();
+                tonePlayer.playTone(config.getNumeroMessage());
+                stateInitialized = true;
+                lastToneUpdateTime = millis();
+            }
+
+            // recurring
+            webServer.handleClient();
+            // Rate-limited tone player update
+            if (millis() - lastToneUpdateTime >= TONE_UPDATE_INTERVAL) {
+                tonePlayer.update();
+                lastToneUpdateTime = millis();
+            }
+
+            if (!tonePlayer.isPlaying()) {
+                currentState = INHIBITED;
+                tonePlayer.update();
+                stateStartTime = millis();
+                stateInitialized = false;
+            }
+            break;
+
+        case INHIBITED:
+            /* Entry actions:
+             * - Set LED to red
+             * 
+             * Recurring actions:
+             * - None (just waiting)
+             * 
+             * Exit condition:
+             * - After 10 seconds (INHIBIT_DURATION)
+             * - Transitions to READY_WAITING
+             */
+            if (!stateInitialized) {
+                Serial.println("State: INHIBITED");
+                ledManager.setRed();
+                stateInitialized = true;
+            }
+
+            // recurring
+            webServer.handleClient();
+            // Rate-limited tone player update
+            if (millis() - lastToneUpdateTime >= TONE_UPDATE_INTERVAL) {
+                tonePlayer.update();
+                lastToneUpdateTime = millis();
+            }
+
+            if (millis() - stateStartTime >= INHIBIT_DURATION) {
+                currentState = READY_WAITING;
+                stateStartTime = millis();
+                stateInitialized = false;
+            }
+            break;
     }
-   
-    delay(5);  // Prevent watchdog reset 100ms
-   
+
+    delay(5);  // Prevent watchdog reset
 }
