@@ -33,7 +33,7 @@ void TonePlayer::begin() {
     myMP3player.enableDAC();
     //myMP3player.volume(volume);
     adjustVolume(volume);
-    playTone(3);
+    //playTone(3);
     /*
     this->myMP3player.play(1);
     delay(5000);
@@ -47,20 +47,15 @@ void TonePlayer::begin() {
 }
 
 void TonePlayer::playTone(int messageNumber) {
-    Serial.println("playing Tone " + String(messageNumber));
-    myMP3player.play(messageNumber);
-    Serial.println("tone playing...");
-    /*
-    Serial.println("playTone called");
     if (! playing && ! inhibited) {
-        Serial.println("playTone " + String(messageNumber));
+        Serial.println("playing Tone " + String(messageNumber));
         myMP3player.play(messageNumber);
         playing = true;
         notifyListeners();
     } else {
         Serial.println("can't play playTone : playing " + String(playing)+ " - inhibited "+String(inhibited));
-        //notifyListeners();
-    }*/
+        notifyListeners();
+    }
 }
 
 void TonePlayer::adjustVolume(int volume) {
