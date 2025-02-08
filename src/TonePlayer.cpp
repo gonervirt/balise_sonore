@@ -110,10 +110,11 @@ bool TonePlayer::checkPlayerState() {
  * 3. Timeout de sécurité
  */
 void TonePlayer::update() {
-    
+    /*
     if (!playing) {
+        Serial.println("Tone not playing");
         return;
-    }
+    }*/
     Serial.println("Tone update called");
     // Method 1: Check for completion events
     if (checkPlayerState()) {

@@ -172,6 +172,11 @@ void loop() {
             // recurring
             pushButtonManager.update();
             webServer.handleClient();
+            // Rate-limited tone player update
+            if (millis() - lastToneUpdateTime >= TONE_UPDATE_INTERVAL) {
+                tonePlayer.update();
+                lastToneUpdateTime = millis();
+            }
 
             if (pushButtonManager.isButtonPressed()) {
                 currentState = PLAYING_TONE;
