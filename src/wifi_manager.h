@@ -78,6 +78,15 @@ public:
      * @return IP address as string
      */
     String getIP();
+
+    struct WifiStatus {
+        String ssid;
+        String ip;
+        bool isConnected;
+        int rssi;
+    };
+    
+    WifiStatus checkStatus();
 };
 
 #endif

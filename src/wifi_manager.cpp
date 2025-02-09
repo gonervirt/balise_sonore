@@ -68,3 +68,19 @@ String WiFiManager::getIP() {
     }
     return WiFi.localIP().toString();
 }
+
+WiFiManager::WifiStatus WiFiManager::checkStatus() {
+    WifiStatus status;
+    if (isAP) {
+        status.ssid = String(ssid);
+        status.ip = WiFi.softAPIP().toString();
+        status.isConnected = WiFi.softAPgetStationNum() > 0;
+        status.rssi = 0; // Not applicable for AP mode
+    } else {
+        status.ssid = String(ssid);
+        status.ip = WiFi.localIP().toString();
+        status.isConnected = WiFi.status() == WL_CONNECTED;
+        status.rssi = WiFi.RSSI();
+    }
+    return status;
+}

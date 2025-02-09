@@ -30,6 +30,10 @@
 #define YELLOW_LED_PIN 1
 #define RED_LED_PIN 0
 
+//default wifi
+// wifi_ssid, "ESP32-AP"
+// wifi_password, "password123"
+
 // Add state machine enum
 enum AppState {
     STARTING,
@@ -58,6 +62,10 @@ bool stateInitialized = false;
 // Add after other state machine variables
 unsigned long lastToneUpdateTime = 0;
 const unsigned long TONE_UPDATE_INTERVAL = 1000; // 1 second interval
+
+// Add after other global variables
+unsigned long lastWifiCheckTime = 0;
+const unsigned long WIFI_CHECK_INTERVAL = 5000; // Check every 5 seconds
 
 // Wait for Serial with timeout
 void waitForSerial(unsigned long timeout_ms = 10000) {
@@ -110,6 +118,17 @@ void setup() {
 }
 
 void loop() {
+    // Add at the beginning of the loop function
+    if (millis() - lastWifiCheckTime >= WIFI_CHECK_INTERVAL) {
+        WiFiManager::WifiStatus status = wifiManager.checkStatus();
+        Serial.printf("WiFi Status - SSID: %s, IP: %s, Connexion au wifi: %s, RSSI: %d\n",
+            status.ssid.c_str(),
+            status.ip.c_str(),
+            status.isConnected ? "Yes" : "No",
+            status.rssi);
+        lastWifiCheckTime = millis();
+    }
+
     webServer.handleClient();
 
     // State machine
