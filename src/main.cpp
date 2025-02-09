@@ -90,7 +90,7 @@ void setup() {
     }
 
     tonePlayer.begin(); // Initialisation du lecteur de tonalité
-    delay(5000);
+    //delay(5000);
     Serial.println("TonePlayer initialized");
     //tonePlayer.update();
     //Serial.println("TonePlayer updated");
@@ -133,7 +133,7 @@ void loop() {
             }
 
             // recurring
-            webServer.handleClient();
+            //webServer.handleClient();
             // Rate-limited tone player update
             if (millis() - lastToneUpdateTime >= TONE_UPDATE_INTERVAL) {
                 tonePlayer.update();
@@ -171,12 +171,14 @@ void loop() {
             }
             // recurring
             pushButtonManager.update();
-            webServer.handleClient();
+            //webServer.handleClient();
             // Rate-limited tone player update
+            /*
             if (millis() - lastToneUpdateTime >= TONE_UPDATE_INTERVAL) {
                 tonePlayer.update();
                 lastToneUpdateTime = millis();
             }
+            */
 
             if (pushButtonManager.isButtonPressed()) {
                 currentState = PLAYING_TONE;
@@ -207,7 +209,7 @@ void loop() {
             }
 
             // recurring
-            webServer.handleClient();
+            //webServer.handleClient();
             // Rate-limited tone player update
             if (millis() - lastToneUpdateTime >= TONE_UPDATE_INTERVAL) {
                 tonePlayer.update();
@@ -240,7 +242,7 @@ void loop() {
             }
 
             // recurring
-            webServer.handleClient();
+            //webServer.handleClient();
             // Rate-limited tone player update
             if (millis() - lastToneUpdateTime >= TONE_UPDATE_INTERVAL) {
                 tonePlayer.update();
