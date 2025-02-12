@@ -44,6 +44,9 @@ private:
     bool isAP;            // Mode flag (true = AP, false = Station)
     uint8_t channel;      // WiFi channel (1-13)
     bool hidden_ssid;     // SSID visibility flag
+    unsigned long lastCheckTime;  // New variable for timing
+    
+    void checkAndRestartAP();    // New private method
 
 public:
     /**
@@ -87,6 +90,8 @@ public:
     };
     
     WifiStatus checkStatus();
+
+    void loop();                 // New public method
 };
 
 #endif

@@ -119,6 +119,7 @@ void setup() {
 
 void loop() {
     // Add at the beginning of the loop function
+    /*
     if (millis() - lastWifiCheckTime >= WIFI_CHECK_INTERVAL) {
         WiFiManager::WifiStatus status = wifiManager.checkStatus();
         Serial.printf("WiFi Status - SSID: %s, IP: %s, Connexion au wifi: %s, RSSI: %d\n",
@@ -127,9 +128,10 @@ void loop() {
             status.isConnected ? "Yes" : "No",
             status.rssi);
         lastWifiCheckTime = millis();
-    }
+    }*/
 
     webServer.handleClient();
+    wifiManager.loop();
 
     // State machine
     switch(currentState) {

@@ -6,6 +6,7 @@ WiFiManager::WiFiManager(const char* ap_ssid, const char* ap_password) {
     this->isAP = true;
     this->channel = 6;
     this->hidden_ssid = false;
+    this->lastCheckTime = 0;  // Initialize timer
 }
 
 WiFiManager::WiFiManager(const char* sta_ssid, const char* sta_password, bool station) {
@@ -28,6 +29,7 @@ bool WiFiManager::begin() {
     if (isAP) {
         Serial.println("Starting Access Point mode...");
         WiFi.mode(WIFI_AP);
+        WiFi.setSleep(false);
         bool success = WiFi.softAP(ssid, password, channel, hidden_ssid);
         if (success) {
             Serial.println("Access Point started successfully");
@@ -83,4 +85,26 @@ WiFiManager::WifiStatus WiFiManager::checkStatus() {
         status.rssi = WiFi.RSSI();
     }
     return status;
+}
+
+void WiFiManager::checkAndRestartAP() {
+    if (!isAP) return;
+    
+    if (WiFi.softAPgetStationNum() == 0) {
+        Serial.println("No stations connected. Restarting AP...");
+        WiFi.softAPdisconnect(true);
+        delay(1000);
+        WiFi.softAP(ssid, password, channel, hidden_ssid);
+        Serial.println("AP restarted");
+    }
+}
+
+void WiFiManager::loop() {
+    if (!isAP) return;
+    
+    unsigned long currentTime = millis();
+    if (currentTime - lastCheckTime >= 60000) {  // Check every minute
+        checkAndRestartAP();
+        lastCheckTime = currentTime;
+    }
 }
