@@ -46,6 +46,7 @@ void TonePlayer::begin() {
         Serial.print(F("."));
         delay(1000);
     }
+    update(); // Clear any pending events
     Serial.println(F(""));
 
     Serial.println(F("DFPlayer Mini online."));
