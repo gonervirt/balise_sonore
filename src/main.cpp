@@ -30,7 +30,7 @@
 #define GREEN_LED_PIN 2
 #define YELLOW_LED_PIN 1
 #define RED_LED_PIN 0
-#define RADIO_PIN 15   // Define pin at the top for easy configuration
+#define RADIO_PIN 9   // Define pin at the top for easy configuration
 
 // default wifi
 //  wifi_ssid, "BALISESONORE"
