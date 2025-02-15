@@ -51,7 +51,7 @@ enum AppState
 Config config;
 WiFiManager wifiManager(config);
 WebServerManager webServer(config);
-TonePlayer tonePlayer(RXD2, TXD2);
+TonePlayer tonePlayer(RXD2, TXD2, config);  // Updated constructor call
 PushButtonManager pushButtonManager(BUTTON_PIN);
 LedManager ledManager(GREEN_LED_PIN, YELLOW_LED_PIN, RED_LED_PIN);
 

@@ -5,6 +5,7 @@
 #include <DFRobotDFPlayerMini.h>
 #include <vector>
 #include <SoftwareSerial.h>
+#include "Config.h"
 
 /**
  * @brief Interface pour les écouteurs d'événements de lecture de sons
@@ -30,8 +31,9 @@ public:
      * @brief Constructeur
      * @param rxd2 Broche RX pour la communication série avec le DFPlayer
      * @param txd2 Broche TX pour la communication série avec le DFPlayer
+     * @param config Référence à la configuration
      */
-    TonePlayer(int rxd2, int txd2);
+    TonePlayer(int rxd2, int txd2, Config& config);
     
     /**
      * @brief Destructeur - Libère les ressources
@@ -89,6 +91,7 @@ private:
     SoftwareSerial* serial2player;
     unsigned long playStartTime;
     static const unsigned long PLAY_TIMEOUT = 30000; // 30 second timeout
+    Config& config;  // Add reference to config
     
     /**
      * @brief Vérifie l'état du lecteur

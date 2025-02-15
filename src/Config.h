@@ -114,6 +114,9 @@ public:
     /** Remove the latest message and decrement message count */
     bool removeLatestMessage();
 
+    uint8_t getVolume() const;
+    void setVolume(uint8_t vol);
+
 private:
     int numeroMessage;
     char wifi_ssid[32];
@@ -125,6 +128,7 @@ private:
     char messages[ABSOLUTE_MAX_MESSAGES][MAX_MESSAGE_LENGTH];
     bool message_defined[ABSOLUTE_MAX_MESSAGES];
     int message_count;
+    uint8_t volume;  // Add volume parameter
     
     const char* getDefaultMessage(int number) const;
     static const char* CONFIG_FILE;  // Add this line

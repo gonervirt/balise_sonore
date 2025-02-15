@@ -18,6 +18,7 @@ Config::Config() {
         message_defined[i] = false;
         strcpy(messages[i], getDefaultMessage(i + 1));
     }
+    volume = 15;  // Default volume
 }
 
 // Initialisation de la configuration
@@ -75,6 +76,8 @@ void Config::loadConfig() {
         message_defined[i] = strlen(messages[i]) > 0;
         i++;
     }
+
+    volume = doc["volume"] | 15;  // Load volume setting
 }
 
 // Sauvegarde de la configuration dans la mémoire non volatile
@@ -101,6 +104,8 @@ void Config::saveConfig() {
             msg["text"] = messages[i];
         }
     }
+
+    doc["volume"] = volume;
 
     if (!saveJsonToFile(doc)) {
         Serial.println("Failed to save configuration");
@@ -240,4 +245,13 @@ bool Config::removeLatestMessage() {
     Serial.printf("Removed message %d, new message count: %d\n", message_count + 1, message_count);
     saveConfig();
     return true;
+}
+
+uint8_t Config::getVolume() const {
+    return volume;
+}
+
+void Config::setVolume(uint8_t vol) {
+    volume = constrain(vol, 0, 30);
+    saveConfig();
 }

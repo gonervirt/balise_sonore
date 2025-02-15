@@ -1,13 +1,15 @@
 #include <SoftwareSerial.h>
 #include "TonePlayer.h"
 #include "Arduino.h"
+#include "Config.h"
 
 /**
  * @brief Initialise le gestionnaire de lecture avec les broches spécifiées
  * 
  * Configure les broches RX/TX et crée l'objet de communication série
  */
-TonePlayer::TonePlayer(int _rxd2, int _txd2) : volume(15), playing(false) {
+TonePlayer::TonePlayer(int _rxd2, int _txd2, Config& config) 
+    : volume(config.getVolume()), playing(false), config(config) {
     rxd2 = _rxd2;
     txd2 = _txd2;
     serial2player = new SoftwareSerial(rxd2, txd2);
@@ -53,7 +55,7 @@ void TonePlayer::begin() {
 
     Serial.println(F("DFPlayer Mini online."));
     myMP3player.enableDAC();
-    myMP3player.volume(volume);
+    myMP3player.volume(config.getVolume());  // Use volume from config
     Serial.println(F("Player initialized"));
 }
 
@@ -138,7 +140,8 @@ void TonePlayer::update() {
 }
 
 void TonePlayer::adjustVolume(int volume) {
-    this->volume = constrain(volume, 0, 30);
+    config.setVolume(volume);  // Save volume to config
+    this->volume = config.getVolume();
     myMP3player.volume(this->volume);
 }
 
