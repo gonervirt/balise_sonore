@@ -42,9 +42,11 @@ void TonePlayer::begin() {
     delay(1000);
     myMP3player.reset();
     
-    while (!myMP3player.available()) {
+    int count = 0;
+    while (!myMP3player.available() && count < 30) {
         Serial.print(F("."));
         delay(1000);
+        count++;
     }
     update(); // Clear any pending events
     Serial.println(F(""));
@@ -111,11 +113,6 @@ bool TonePlayer::checkPlayerState() {
  * 3. Timeout de sécurité
  */
 void TonePlayer::update() {
-    /*
-    if (!playing) {
-        Serial.println("Tone not playing");
-        return;
-    }*/
     Serial.println("Tone update called");
     // Method 1: Check for completion events
     if (checkPlayerState()) {

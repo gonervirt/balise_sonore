@@ -107,18 +107,9 @@ void setup()
     tonePlayer.begin(); // Initialisation du lecteur de tonalité
     // delay(5000);
     Serial.println("TonePlayer initialized");
-    // tonePlayer.update();
-    // Serial.println("TonePlayer updated");
-    // tonePlayer.playTone(1);
 
     pushButtonManager.begin(); // Initialisation du gestionnaire de bouton poussoir
     Serial.println("PushButtonManager initialized");
-
-    // register listener
-    // tonePlayer.addListener(&pushButtonManager); // Enregistrer le gestionnaire de bouton poussoir comme écouteur
-    // Serial.println("PushButtonManager listener added");
-    // tonePlayer.addListener(&radioMessageHandler); // Enregistrer le gestionnaire de messages radio comme écouteur
-    // Serial.println("RadioMessageHandler listener added");
 
     stateStartTime = millis(); // Initialize state timing
 }
