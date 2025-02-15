@@ -31,8 +31,8 @@
 #define RED_LED_PIN 0
 
 // default wifi
-//  wifi_ssid, "ESP32-AP"
-//  wifi_password, "password123"
+//  wifi_ssid, "BALISESONORE"
+//  wifi_password, "BaliseSonore_Betton_Mairie"
 
 // Add state machine enum
 enum AppState

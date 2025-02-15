@@ -8,8 +8,8 @@ const char* Config::CONFIG_FILE = "/config.json";
 // Constructeur de la classe Config
 Config::Config() {
     numeroMessage = 1;
-    strcpy(wifi_ssid, "ESP32-AP");
-    strcpy(wifi_password, "password123");
+    strcpy(wifi_ssid, "BALISESONORE");
+    strcpy(wifi_password, "BaliseSonore_Betton_Mairie");
     access_point = true;
     wifi_channel = 6;
     hidden_ssid = false;
