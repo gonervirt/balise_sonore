@@ -17,6 +17,7 @@
 #include "LedManager.h"
 #include "TonePlayer.h"
 #include "Config.h"
+#include "RadioMessageHandler.h"
 
 #ifndef FIRMWARE_VERSION
 #define FIRMWARE_VERSION "development"
@@ -29,6 +30,7 @@
 #define GREEN_LED_PIN 2
 #define YELLOW_LED_PIN 1
 #define RED_LED_PIN 0
+#define RADIO_PIN 15   // Define pin at the top for easy configuration
 
 // default wifi
 //  wifi_ssid, "BALISESONORE"
@@ -54,6 +56,7 @@ WebServerManager webServer(config);
 TonePlayer tonePlayer(RXD2, TXD2, config);  // Updated constructor call
 PushButtonManager pushButtonManager(BUTTON_PIN);
 LedManager ledManager(GREEN_LED_PIN, YELLOW_LED_PIN, RED_LED_PIN);
+RadioMessageHandler radioHandler(RADIO_PIN);
 
 // Add state machine variables
 AppState currentState = STARTING;
@@ -110,6 +113,9 @@ void setup()
 
     pushButtonManager.begin(); // Initialisation du gestionnaire de bouton poussoir
     Serial.println("PushButtonManager initialized");
+
+    radioHandler.begin(); // Initialisation du gestionnaire de messages radio
+    Serial.println("RadioMessageHandler initialized");
 
     stateStartTime = millis(); // Initialize state timing
 }

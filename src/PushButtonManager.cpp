@@ -26,14 +26,6 @@ bool PushButtonManager::isButtonPressed() const {
 }
 
 // Réinitialise l'état du bouton poussoir lorsque la tonalité est terminée
-void PushButtonManager::onToneFinished() {
-    buttonPressed = false;
-    buttonLocked = false;
-    Serial.println("..........onToneFinished called");
-}
-
-
-// Réinitialise l'état du bouton poussoir lorsque la tonalité est terminée
 void PushButtonManager::releaseButtonPressed() {
     buttonPressed = false;
     buttonLocked = false;
