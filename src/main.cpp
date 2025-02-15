@@ -123,17 +123,6 @@ void setup()
 void loop()
 {
     // Add at the beginning of the loop function
-    /*
-    if (millis() - lastWifiCheckTime >= WIFI_CHECK_INTERVAL) {
-        WiFiManager::WifiStatus status = wifiManager.checkStatus();
-        Serial.printf("WiFi Status - SSID: %s, IP: %s, Connexion au wifi: %s, RSSI: %d\n",
-            status.ssid.c_str(),
-            status.ip.c_str(),
-            status.isConnected ? "Yes" : "No",
-            status.rssi);
-        lastWifiCheckTime = millis();
-    }*/
-
     webServer.handleClient();
 
     // State machine
@@ -201,21 +190,19 @@ void loop()
         }
         // recurring
         pushButtonManager.update();
-        // webServer.handleClient();
-        //  Rate-limited tone player update
-        /*
-        if (millis() - lastToneUpdateTime >= TONE_UPDATE_INTERVAL) {
-            tonePlayer.update();
-            lastToneUpdateTime = millis();
-        }
-        */
+        radioHandler.processMessages();  // Add this line to process radio messages
 
-        if (pushButtonManager.isButtonPressed())
+        if (pushButtonManager.isButtonPressed() || 
+            (radioHandler.isMessageReady() && radioHandler.getCurrentMessage().command == ACTIVATE_SOUND))
         {
             currentState = PLAYING_TONE;
             stateStartTime = millis();
             stateInitialized = false;
             pushButtonManager.releaseButtonPressed();
+            // Reset radio message status
+            if (radioHandler.isMessageReady()) {
+                radioHandler.resetMessage();
+            }
         }
         break;
 

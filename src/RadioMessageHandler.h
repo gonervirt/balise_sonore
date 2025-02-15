@@ -55,5 +55,11 @@ public:
     void processMessages();
     bool isMessageReady() const;
     DecodedMessage getLastMessage() const { return currentMessage; }
+    void resetMessage() { 
+        status = WAITING_MSG; 
+        currentMessage.isValid = false;
+        currentMessage.repeatCount = 0;
+    }
+    const DecodedMessage& getCurrentMessage() const { return currentMessage; }
     static void IRAM_ATTR onInterrupt();
 };
