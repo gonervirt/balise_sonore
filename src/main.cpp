@@ -159,19 +159,19 @@ void loop()
         {
             tonePlayer.update();
             lastToneUpdateTime = millis();
-        }
 
-        if (!tonePlayer.isPlaying())
-        {
-            currentState = READY_WAITING;
-            stateStartTime = millis();
-            stateInitialized = false;
-
-            if (millis() - stateStartTime >= STARTING_DURATION)
+            if (!tonePlayer.isPlaying())
             {
                 currentState = READY_WAITING;
                 stateStartTime = millis();
                 stateInitialized = false;
+
+                if (millis() - stateStartTime >= STARTING_DURATION)
+                {
+                    currentState = READY_WAITING;
+                    stateStartTime = millis();
+                    stateInitialized = false;
+                }
             }
         }
         break;

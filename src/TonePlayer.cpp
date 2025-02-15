@@ -9,7 +9,7 @@
  * Configure les broches RX/TX et crée l'objet de communication série
  */
 TonePlayer::TonePlayer(int _rxd2, int _txd2, Config& config) 
-    : volume(config.getVolume()), playing(false), config(config) {
+    : playing(false), config(config), lastConfigVolume(config.getVolume()) {
     rxd2 = _rxd2;
     txd2 = _txd2;
     serial2player = new SoftwareSerial(rxd2, txd2);
@@ -55,7 +55,7 @@ void TonePlayer::begin() {
 
     Serial.println(F("DFPlayer Mini online."));
     myMP3player.enableDAC();
-    myMP3player.volume(config.getVolume());  // Use volume from config
+    adjustVolume(config.getVolume());  // Use volume from config
     Serial.println(F("Player initialized"));
 }
 
@@ -116,6 +116,10 @@ bool TonePlayer::checkPlayerState() {
  */
 void TonePlayer::update() {
     Serial.println("Tone update called");
+    
+    // Check volume changes at the start of update
+    checkVolumeChange();
+    
     // Method 1: Check for completion events
     if (checkPlayerState()) {
         Serial.println("Tone finished (event detected)");
@@ -139,24 +143,22 @@ void TonePlayer::update() {
     }
 }
 
-void TonePlayer::adjustVolume(int volume) {
-    config.setVolume(volume);  // Save volume to config
-    this->volume = config.getVolume();
-    myMP3player.volume(this->volume);
-}
-
-
-bool TonePlayer::isPlaying() {
-    return playing;
-}
-
-
-void TonePlayer::addListener(TonePlayerListener* listener) {
-    listeners.push_back(listener);
-}
-
-void TonePlayer::notifyListeners() {
-    for (TonePlayerListener* listener : listeners) {
-        listener->onToneFinished();
+void TonePlayer::checkVolumeChange()
+{
+    uint8_t currentConfigVolume = config.getVolume();
+    if (currentConfigVolume != lastConfigVolume)
+    {
+        Serial.printf("Volume changed in config from %d to %d\n", lastConfigVolume, currentConfigVolume);
+        adjustVolume(currentConfigVolume);
     }
+}
+
+void TonePlayer::adjustVolume(int volume) {
+    lastConfigVolume = volume;  // Update the tracking variable
+    myMP3player.volume(volume);
+}
+
+
+bool TonePlayer::isPlaying() const {
+    return playing;
 }

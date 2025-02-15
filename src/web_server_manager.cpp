@@ -56,6 +56,7 @@ void WebServerManager::setupRoutes() {
     server.on("/message", [this]() { this->handleMessageConfig(); });
     server.on("/message-save", HTTP_POST, [this]() { this->handleMessageSave(); });
     server.on("/message-text-save", HTTP_POST, [this]() { this->handleMessageTextSave(); });
+    server.on("/volume-save", HTTP_POST, [this]() { this->handleVolumeSave(); });  // Add new route
     server.on("/esp32", [this]() { this->handleEsp32Config(); });
     server.on("/esp32-action", HTTP_POST, [this]() { this->handleEsp32Action(); });
     server.onNotFound([this]() { this->handleNotFound(); });
@@ -233,6 +234,18 @@ void WebServerManager::handleMessageConfig() {
     html += "<input type='submit' value='Save Message' class='btn'>";
     html += "</form>";
     html += "</div>";
+
+    // Add volume control section before the footer
+    html += "<div class='config-section'>";
+    html += "<h2>Volume Control</h2>";
+    html += formatConfigItem("Current Volume", String(config.getVolume()));
+    html += "<form action='/volume-save' method='post'>";
+    html += "<label for='volume'>Volume (0-30): </label>";
+    html += "<input type='number' id='volume' name='volume' min='0' max='30' value='" + 
+            String(config.getVolume()) + "'>";
+    html += "<input type='submit' value='Save Volume' class='btn'>";
+    html += "</form>";
+    html += "</div>";
     
     html += getFooter();
     server.send(200, "text/html", html);
@@ -320,6 +333,21 @@ void WebServerManager::handleMessageTextSave() {
     } else {
         Serial.println("Error: Missing message text parameters");
         server.send(400, "text/plain", "Missing parameters");
+    }
+}
+
+void WebServerManager::handleVolumeSave() {
+    if (server.hasArg("volume")) {
+        int volume = server.arg("volume").toInt();
+        volume = constrain(volume, 0, 30);  // Ensure volume is within valid range
+        
+        Serial.printf("Setting volume to: %d\n", volume);
+        config.setVolume(volume);
+        
+        server.sendHeader("Location", "/message");
+        server.send(303);
+    } else {
+        server.send(400, "text/plain", "Missing volume parameter");
     }
 }
 

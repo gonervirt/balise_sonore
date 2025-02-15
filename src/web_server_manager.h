@@ -48,6 +48,8 @@ private:
     /** Generate HTML footer */
     String getFooter();
     
+    void handleVolumeSave();  // Add new handler declaration
+
 public:
     /**
      * Create web server manager

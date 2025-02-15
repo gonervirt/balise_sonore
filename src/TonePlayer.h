@@ -62,7 +62,7 @@ public:
      * @brief Vérifie si un message est en cours de lecture
      * @return true si lecture en cours, false sinon
      */
-    bool isPlaying();
+    bool isPlaying() const;
 
     /**
      * @brief Met à jour l'état du lecteur
@@ -85,13 +85,13 @@ private:
     DFRobotDFPlayerMini myMP3player;
     int rxd2;
     int txd2;
-    int volume;
     bool playing;
     std::vector<TonePlayerListener*> listeners;
     SoftwareSerial* serial2player;
     unsigned long playStartTime;
     static const unsigned long PLAY_TIMEOUT = 30000; // 30 second timeout
     Config& config;  // Add reference to config
+    int lastConfigVolume;  // Add this to track config volume changes
     
     /**
      * @brief Vérifie l'état du lecteur
@@ -99,10 +99,8 @@ private:
      */
     bool checkPlayerState();
     
-    /**
-     * @brief Notifie tous les écouteurs de la fin de lecture
-     */
-    void notifyListeners();
+    /** Check and update volume if changed in config */
+    void checkVolumeChange();
 };
 
 #endif // TONEPLAYER_H
