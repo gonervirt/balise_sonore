@@ -49,6 +49,9 @@ private:
     bool isGap(unsigned long timing) const;
     void decodeMessage();
 
+    static RadioMessageHandler* instance;
+    static void IRAM_ATTR onInterrupt();
+
 public:
     RadioMessageHandler(int pin);
     void begin();
@@ -61,5 +64,4 @@ public:
         currentMessage.repeatCount = 0;
     }
     const DecodedMessage& getCurrentMessage() const { return currentMessage; }
-    static void IRAM_ATTR onInterrupt();
 };

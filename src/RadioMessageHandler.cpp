@@ -6,6 +6,7 @@ volatile unsigned long RadioMessageHandler::memoMicros = 0;
 volatile int RadioMessageHandler::MyInts[100] = {0};
 volatile bool RadioMessageHandler::interruptionActive = true;
 
+
 RadioMessageHandler::RadioMessageHandler(int pin) : radioPin(pin), status(WAITING_MSG) {
     currentMessage.command = INVALID_COMMAND;
     currentMessage.isValid = false;
@@ -31,8 +32,8 @@ bool RadioMessageHandler::isMessageReady() const {
 }
 
 void IRAM_ATTR RadioMessageHandler::onInterrupt() {
-    if (interruptionActive) {
-        compteur++;
+    if (interruptionActive) {  // Use static member directly
+        compteur++;            // Use static member directly
         previousMicros = micros();
         int largeur = previousMicros - memoMicros;
         memoMicros = previousMicros;
