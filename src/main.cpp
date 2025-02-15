@@ -23,14 +23,41 @@
 #define FIRMWARE_VERSION "development"
 #endif
 
-// Définition des broches pour la communication et les LEDs
-#define RXD2 20      // RX2 pour communiquer avec MP3
-#define TXD2 21      // TX2 pour communiquer avec MP3
-#define BUTTON_PIN 6 // Définir la broche pour le bouton poussoir
-#define GREEN_LED_PIN 2
-#define YELLOW_LED_PIN 1
-#define RED_LED_PIN 0
-#define RADIO_PIN 9   // Define pin at the top for easy configuration
+
+// Pin definitions based on board type
+#if defined(BOARD_LOLIN_C3_MINI)
+    #define RXD2 20
+    #define TXD2 21
+    #define BUTTON_PIN 6
+    #define GREEN_LED_PIN 2
+    #define YELLOW_LED_PIN 1
+    #define RED_LED_PIN 0
+    #define RADIO_PIN 9
+#elif defined(BOARD_ESP32_S2)
+    #define RXD2 17
+    #define TXD2 18
+    #define BUTTON_PIN 38
+    #define GREEN_LED_PIN 35
+    #define YELLOW_LED_PIN 36
+    #define RED_LED_PIN 37
+    #define RADIO_PIN 33
+#elif defined(BOARD_ESP32_S3)
+    #define RXD2 15
+    #define TXD2 16
+    #define BUTTON_PIN 14
+    #define GREEN_LED_PIN 11
+    #define YELLOW_LED_PIN 12
+    #define RED_LED_PIN 13
+    #define RADIO_PIN 10
+#else  // Default to LOLIN C3 Mini for any invalid or undefined value
+    #define RXD2 20
+    #define TXD2 21
+    #define BUTTON_PIN 6
+    #define GREEN_LED_PIN 2
+    #define YELLOW_LED_PIN 1
+    #define RED_LED_PIN 0
+    #define RADIO_PIN 9
+#endif
 
 // default wifi
 //  wifi_ssid, "BALISESONORE"
