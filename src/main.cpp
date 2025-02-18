@@ -42,13 +42,13 @@
     #define RED_LED_PIN 37
     #define RADIO_PIN 33
 #elif defined(BOARD_ESP32_S3)
-    #define RXD2 15
-    #define TXD2 16
+    #define RXD2 18
+    #define TXD2 17
     #define BUTTON_PIN 14
-    #define GREEN_LED_PIN 11
-    #define YELLOW_LED_PIN 12
+    #define GREEN_LED_PIN 47
+    #define YELLOW_LED_PIN 42
     #define RED_LED_PIN 13
-    #define RADIO_PIN 10
+    #define RADIO_PIN 15
 #else  // Default to LOLIN C3 Mini for any invalid or undefined value
     #define RXD2 20
     #define TXD2 21
