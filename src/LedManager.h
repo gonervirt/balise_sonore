@@ -10,6 +10,7 @@ public:
     void begin();
     void setGreen();
     void setYellow();
+    void setYellowRed();
     void setRed();
     void off();
 

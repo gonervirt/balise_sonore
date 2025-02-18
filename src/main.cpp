@@ -134,9 +134,10 @@ void setup()
         Serial.println("WiFi failed!");
     }
 
+    ledManager.setYellowRed();
     tonePlayer.begin(); // Initialisation du lecteur de tonalité
-    // delay(5000);
     Serial.println("TonePlayer initialized");
+    ledManager.setGreen();
 
     pushButtonManager.begin(); // Initialisation du gestionnaire de bouton poussoir
     Serial.println("PushButtonManager initialized");

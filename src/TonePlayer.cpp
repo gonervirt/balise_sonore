@@ -43,11 +43,14 @@ void TonePlayer::begin() {
     Serial.println(F("Waiting DF player"));
     delay(1000);
     myMP3player.reset();
+    delay(4000);
+    
     
     int count = 0;
     while (!myMP3player.available() && count < 30) {
         Serial.print(F("."));
         delay(1000);
+        update(); // Clear any pending events
         count++;
     }
     update(); // Clear any pending events

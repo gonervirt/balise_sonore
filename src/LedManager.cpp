@@ -25,18 +25,28 @@ void LedManager::begin() {
 
 // Allume la LED verte
 void LedManager::setGreen() {
+    off();
     setLed(greenPin);
     //Serial.println("LED set to green");
 }
 
 // Allume la LED jaune
 void LedManager::setYellow() {
+    off();
     setLed(yellowPin);
     //Serial.println("LED set to yellow");
 }
 
 // Allume la LED rouge
 void LedManager::setRed() {
+    off();
+    setLed(redPin);
+    //Serial.println("LED set to red");
+}
+// Allume la LED rouge
+void LedManager::setYellowRed() {
+    off();
+    setLed(yellowPin);
     setLed(redPin);
     //Serial.println("LED set to red");
 }
@@ -48,8 +58,7 @@ void LedManager::off() {
     digitalWrite(redPin, LOW);
 }
 
-// Allume la LED spécifiée et éteint les autres
+// Allume la LED spécifiée 
 void LedManager::setLed(uint8_t pin) {
-    off();
     digitalWrite(pin, HIGH);
 }
