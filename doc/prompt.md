@@ -3,3 +3,6 @@ In web_server_manager.cpp, when selecting the message number, is it possibel to 
 In web_server_manager.cpp, coudl you add button to add or remove a message with its messageNum. if needed, you shoul denumber the messagea must go from 1 to latest message number.
 
 in the main.cpp, function loop, couldyou implement a state machine that will make manage the life of the application, States are: STARTING (that will play a message number 3, saying that application is starting, running also the web server). This state will be 30s, newt a state "READY, WAITING", where need wait for push button., other state "PLAYING TONE", where the Tone is played after the button is pushed, then state, "INIBITED", a period of time of about 10s, bore coming back to READY_WAITING state
+
+
+In TonePlayer, the logic is chnaged and we will use the gpio 19 status connected to busy-pin from df player. No need to check is mp3player.isavailable, but use the gpio 19 state high as available, and low as busy reading. 

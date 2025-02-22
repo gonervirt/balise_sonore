@@ -28,6 +28,7 @@
 #if defined(BOARD_LOLIN_C3_MINI)
     #define RXD2 20
     #define TXD2 21
+    #define BUSY_PIN 19
     #define BUTTON_PIN 6
     #define GREEN_LED_PIN 2
     #define YELLOW_LED_PIN 1
@@ -36,6 +37,7 @@
 #elif defined(BOARD_ESP32_S2)
     #define RXD2 17
     #define TXD2 18
+    #define BUSY_PIN 19
     #define BUTTON_PIN 38
     #define GREEN_LED_PIN 35
     #define YELLOW_LED_PIN 36
@@ -44,6 +46,7 @@
 #elif defined(BOARD_ESP32_S3)
     #define RXD2 18
     #define TXD2 17
+    #define BUSY_PIN 19
     #define BUTTON_PIN 14
     #define GREEN_LED_PIN 47
     #define YELLOW_LED_PIN 42
@@ -52,6 +55,7 @@
 #else  // Default to LOLIN C3 Mini for any invalid or undefined value
     #define RXD2 20
     #define TXD2 21
+    #define BUSY_PIN 19
     #define BUTTON_PIN 6
     #define GREEN_LED_PIN 2
     #define YELLOW_LED_PIN 1
@@ -80,13 +84,13 @@ enum AppState
 Config config;
 WiFiManager wifiManager(config);
 WebServerManager webServer(config);
-TonePlayer tonePlayer(RXD2, TXD2, config);  // Updated constructor call
+TonePlayer tonePlayer(RXD2, TXD2, BUSY_PIN, config);  // Updated constructor call
 PushButtonManager pushButtonManager(BUTTON_PIN);
 LedManager ledManager(GREEN_LED_PIN, YELLOW_LED_PIN, RED_LED_PIN);
 RadioMessageHandler radioHandler(RADIO_PIN);
 
 // Add state machine variables
-AppState currentState = READY_WAITING;
+AppState currentState = STARTING;
 unsigned long stateStartTime = 0;
 bool stateInitialized = false;
 

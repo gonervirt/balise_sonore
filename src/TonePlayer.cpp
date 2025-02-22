@@ -8,10 +8,11 @@
  * 
  * Configure les broches RX/TX et crée l'objet de communication série
  */
-TonePlayer::TonePlayer(int _rxd2, int _txd2, Config& config) 
+TonePlayer::TonePlayer(int _rxd2, int _txd2, int _busyPin, Config& config) 
     : playing(false), config(config), lastConfigVolume(config.getVolume()) {
     rxd2 = _rxd2;
     txd2 = _txd2;
+    busyPin = _busyPin;
     serial2player = new SoftwareSerial(rxd2, txd2);
 }
 
@@ -37,17 +38,20 @@ void TonePlayer::begin() {
         return;
     }
 
+    // Configure busy pin as input
+    pinMode(busyPin, INPUT);
+
     serial2player->begin(9600);
     myMP3player.setTimeOut(1000);
-    myMP3player.begin(*serial2player, /*isACK = */true, /*doReset = */true);
+    myMP3player.begin(*serial2player, /*isACK = */false, /*doReset = */true);
     Serial.println(F("Waiting DF player"));
     delay(1000);
-    myMP3player.reset();
-    delay(4000);
+    //myMP3player.reset();
+    //delay(4000);
     
     
     int count = 0;
-    while (!myMP3player.available() && count < 30) {
+    while (digitalRead(busyPin) == LOW && count < 10) {
         Serial.print(F("."));
         delay(1000);
         update(); // Clear any pending events
@@ -82,31 +86,15 @@ void TonePlayer::playTone(int messageNumber) {
  * la fin de lecture ou les erreurs éventuelles
  */
 bool TonePlayer::checkPlayerState() {
-    if (!myMP3player.available()) {
-        Serial.println("DF player is *not* available");
-        return false;
-    } else {
-        Serial.println("DF player is available");
-    }
-
-    uint8_t type = myMP3player.readType();
-    int value = myMP3player.read();
+    // HIGH means player is ready/idle, LOW means it's busy playing
+    bool isReady = digitalRead(busyPin) == HIGH;
     
-    Serial.printf("Player state - Type: %d, Value: %d\n", type, value);
-    
-    switch (type) {
-        case DFPlayerPlayFinished:
-            Serial.println("Tone finished (DFPlayerPlayFinished event detected)");
-            return true;
-        case DFPlayerError:
-            Serial.println("Player error detected");
-            return true;
-        case TimeOut:
-            Serial.println("Player timeout detected");
-            return true;
-        default:
-            return false;
+    if (isReady && playing) {
+        Serial.println("Tone finished (busy pin is HIGH)");
+        return true;
     }
+    
+    return false;
 }
 
 /**
@@ -123,21 +111,13 @@ void TonePlayer::update() {
     // Check volume changes at the start of update
     checkVolumeChange();
     
-    // Method 1: Check for completion events
+    // Check if playback finished
     if (checkPlayerState()) {
-        Serial.println("Tone finished (event detected)");
         playing = false;
         return;
     }
 
-    // Method 2: Check player status directly
-    if (myMP3player.readState() == 512) { // 512 typically means stopped
-        Serial.println("Tone finished (status check)");
-        playing = false;
-        return;
-    }
-
-    // Method 3: Timeout check
+    // Timeout check as fallback
     if (millis() - playStartTime >= PLAY_TIMEOUT) {
         Serial.println("Tone timeout - forcing stop");
         myMP3player.stop();  // Force stop

@@ -31,9 +31,10 @@ public:
      * @brief Constructeur
      * @param rxd2 Broche RX pour la communication série avec le DFPlayer
      * @param txd2 Broche TX pour la communication série avec le DFPlayer
+     * @param busyPin Broche GPIO pour surveiller l'état occupé
      * @param config Référence à la configuration
      */
-    TonePlayer(int rxd2, int txd2, Config& config);
+    TonePlayer(int rxd2, int txd2, int busyPin, Config& config);
     
     /**
      * @brief Destructeur - Libère les ressources
@@ -89,9 +90,10 @@ private:
     std::vector<TonePlayerListener*> listeners;
     SoftwareSerial* serial2player;
     unsigned long playStartTime;
-    static const unsigned long PLAY_TIMEOUT = 30000; // 30 second timeout
+    static const unsigned long PLAY_TIMEOUT = 10000; // 30 second timeout
     Config& config;  // Add reference to config
     int lastConfigVolume;  // Add this to track config volume changes
+    int busyPin;  // GPIO pin for busy state monitoring
     
     /**
      * @brief Vérifie l'état du lecteur
