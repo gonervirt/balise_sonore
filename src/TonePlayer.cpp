@@ -45,10 +45,10 @@ void TonePlayer::begin() {
     myMP3player.setTimeOut(1000);
     myMP3player.begin(*serial2player, /*isACK = */false, /*doReset = */true);
     Serial.println(F("Waiting DF player"));
-    delay(1000);
+    delay(4000);
     //myMP3player.reset();
     //delay(4000);
-    
+    /*
     
     int count = 0;
     while (digitalRead(busyPin) == LOW && count < 10) {
@@ -57,8 +57,9 @@ void TonePlayer::begin() {
         update(); // Clear any pending events
         count++;
     }
-    update(); // Clear any pending events
+    //update(); // Clear any pending events
     Serial.println(F(""));
+    */
 
     Serial.println(F("DFPlayer Mini online."));
     myMP3player.enableDAC();

@@ -28,7 +28,7 @@
 #if defined(BOARD_LOLIN_C3_MINI)
     #define RXD2 20
     #define TXD2 21
-    #define BUSY_PIN 19
+    #define BUSY_PIN 10
     #define BUTTON_PIN 6
     #define GREEN_LED_PIN 2
     #define YELLOW_LED_PIN 1
@@ -73,7 +73,8 @@ enum AppState
     STARTING,
     READY_WAITING,
     PLAYING_TONE,
-    INHIBITED
+    INHIBITED,
+    DESACTIVATED
 };
 
 // Add state machine variables after other defines
@@ -138,12 +139,13 @@ void setup()
         Serial.println("WiFi failed!");
     }
 
+
     ledManager.setYellowRed();
     tonePlayer.begin(); // Initialisation du lecteur de tonalité
     Serial.println("TonePlayer initialized");
     ledManager.setGreen();
 
-    pushButtonManager.begin(); // Initialisation du gestionnaire de bouton poussoir
+    //pushButtonManager.begin(); // Initialisation du gestionnaire de bouton poussoir
     Serial.println("PushButtonManager initialized");
 
     radioHandler.begin(); // Initialisation du gestionnaire de messages radio
@@ -310,6 +312,9 @@ void loop()
                 stateInitialized = false;
             }
         }
+        break;
+
+    case DESACTIVATED:
         break;
     }
 
