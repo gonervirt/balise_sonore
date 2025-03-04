@@ -32,7 +32,7 @@ private:
     static const unsigned long GAP_MIN = 500;
     static const unsigned long GAP_MAX = 700;
     
-    static const int MAX_INTS = 100;  // Add this constant
+    static const int BUFFER_SIZE = 100;  // Renamed from MAX_INTS
 
     const int radioPin;
     MessageStatus status;
@@ -41,13 +41,17 @@ private:
     static volatile int compteur;
     static volatile unsigned long previousMicros;
     static volatile unsigned long memoMicros;
-    static volatile int MyInts[MAX_INTS];  // Update array declaration
+    static volatile int MyInts[BUFFER_SIZE];  // Buffer stays the same size
     static volatile bool interruptionActive;
 
     // Add debug variables
     static volatile uint32_t lastInterruptTime;
     static volatile int lastCompteur;
     static volatile bool overflowOccurred;
+
+    // Add head and tail index for circular buffer
+    static volatile int head;
+    static volatile int tail;
 
     bool validateTiming(unsigned long timing, unsigned long min, unsigned long max) const;
     bool isSync(unsigned long timing) const;
@@ -58,6 +62,18 @@ private:
 
     static RadioMessageHandler* instance;
     static void IRAM_ATTR onInterrupt();
+
+    // Helper methods for circular buffer
+    static int incrementIndex(int index) {
+        return (index + 1) % BUFFER_SIZE;
+    }
+    
+    int getBufferSize() const {
+        if (head == tail) {
+            return 0;  // Buffer empty
+        }
+        return ((head + BUFFER_SIZE - tail) % BUFFER_SIZE);
+    }
 
 public:
     RadioMessageHandler(int pin);

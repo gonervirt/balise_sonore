@@ -8,6 +8,8 @@ volatile bool RadioMessageHandler::interruptionActive = true;
 volatile uint32_t RadioMessageHandler::lastInterruptTime = 0;
 volatile int RadioMessageHandler::lastCompteur = 0;
 volatile bool RadioMessageHandler::overflowOccurred = false;
+volatile int RadioMessageHandler::head = 0;
+volatile int RadioMessageHandler::tail = 0;
 
 RadioMessageHandler::RadioMessageHandler(int pin) : radioPin(pin), status(WAITING_MSG) {
     currentMessage.command = INVALID_COMMAND;
@@ -21,22 +23,17 @@ void RadioMessageHandler::begin() {
 }
 
 void IRAM_ATTR RadioMessageHandler::onInterrupt() {
-    // Keep only essential operations in interrupt
-    if (!interruptionActive) return;  // Exit early if not active
-    
-    if (compteur >= MAX_INTS - 1) {
-        interruptionActive = false;
-        overflowOccurred = true;
-        return;
-    }
+    if (!interruptionActive) return;
 
     unsigned long currentMicros = micros();
     int largeur = currentMicros - memoMicros;
     
     // Store timing only if reasonable
     if (largeur <= 50000) {  // Basic sanity check
+        MyInts[head] = largeur;
+        head = incrementIndex(head);
+        // No need to check for overflow anymore
         compteur++;
-        MyInts[compteur] = largeur;
     }
     
     memoMicros = currentMicros;
@@ -44,21 +41,20 @@ void IRAM_ATTR RadioMessageHandler::onInterrupt() {
     lastCompteur = compteur;
 }
 
-// Add a new method to check interrupt status periodically
 void RadioMessageHandler::processMessages() {
-    if (overflowOccurred) {
-        Serial.println("Buffer overflow detected!");
-        printDebugInfo();
-        overflowOccurred = false;  // Reset the flag
-    }
-
-    if (compteur > 60) {
+    int bufferSize = getBufferSize();
+    
+    if (bufferSize > 60) {  // Enough data to process
         interruptionActive = false;
-        Serial.println("Processing message...");
-        printDebugInfo();
         decodeMessage();
-        compteur = 0;  // Reset counter
-        interruptionActive = true;  // Re-enable interrupts
+        if (status == MSG_READY) {
+            Serial.println("Message successfully decoded:");
+            printDebugInfo();
+        }
+        // Clear processed data by moving tail
+        tail = head;  // Reset buffer after processing
+        compteur = 0;
+        interruptionActive = true;
     }
 }
 
@@ -87,18 +83,23 @@ bool RadioMessageHandler::isGap(unsigned long timing) const {
 }
 
 void RadioMessageHandler::decodeMessage() {
-    if (compteur < 60) {  // Not enough data
+    int bufferSize = getBufferSize();
+    if (bufferSize < 60) {
         status = MSG_ERROR;
         return;
     }
 
     // Look for sync pattern
     int syncIndex = -1;
-    for (int i = 1; i < compteur - 1; i++) {
-        if (isSync(MyInts[i])) {
+    int currentIndex = tail;
+    
+    for (int i = 0; i < bufferSize - 1; i++) {
+        if (isSync(MyInts[currentIndex])) {
+            Serial.printf("Sync found at index %d with timing value %d us\n", i, MyInts[currentIndex]);
             syncIndex = i;
             break;
         }
+        currentIndex = incrementIndex(currentIndex);
     }
 
     if (syncIndex == -1) {
@@ -106,20 +107,27 @@ void RadioMessageHandler::decodeMessage() {
         return;
     }
 
+    // Move to sync position
+    for (int i = 0; i < syncIndex; i++) {
+        tail = incrementIndex(tail);
+    }
+
     // Decode the message after sync
     uint8_t bits[8] = {0};
     int bitCount = 0;
     bool lastBitValid = true;
+    currentIndex = incrementIndex(tail);  // Start after sync
 
-    for (int i = syncIndex + 1; i < compteur && bitCount < 8; i++) {
-        if (isBit1(MyInts[i])) {
+    while (bitCount < 8 && currentIndex != head) {
+        if (isBit1(MyInts[currentIndex])) {
             bits[bitCount++] = 1;
-        } else if (isBit0(MyInts[i])) {
+        } else if (isBit0(MyInts[currentIndex])) {
             bits[bitCount++] = 0;
-        } else if (!isGap(MyInts[i])) {
+        } else if (!isGap(MyInts[currentIndex])) {
             lastBitValid = false;
             break;
         }
+        currentIndex = incrementIndex(currentIndex);
     }
 
     if (!lastBitValid || bitCount != 8) {
@@ -157,13 +165,14 @@ void RadioMessageHandler::decodeMessage() {
 
 void RadioMessageHandler::printDebugInfo() {
     Serial.println("Debug Info:");
-    Serial.printf("Last interrupt time: %lu\n", lastInterruptTime);
-    Serial.printf("Last compteur value: %d\n", lastCompteur);
-    Serial.printf("Overflow occurred: %s\n", overflowOccurred ? "Yes" : "No");
+    Serial.printf("Buffer: head=%d, tail=%d, size=%d\n", head, tail, getBufferSize());
     
-    // Print last few timing values if available
-    int start = max(0, lastCompteur - 5);
-    for (int i = start; i <= lastCompteur; i++) {
-        Serial.printf("MyInts[%d] = %d\n", i, MyInts[i]);
+    // Print last few timing values
+    int current = tail;
+    int count = 0;
+    while (current != head && count < 5) {
+        Serial.printf("MyInts[%d] = %d\n", current, MyInts[current]);
+        current = incrementIndex(current);
+        count++;
     }
 }
