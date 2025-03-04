@@ -5,7 +5,9 @@ volatile unsigned long RadioMessageHandler::previousMicros = 0;
 volatile unsigned long RadioMessageHandler::memoMicros = 0;
 volatile int RadioMessageHandler::MyInts[100] = {0};
 volatile bool RadioMessageHandler::interruptionActive = true;
-
+volatile uint32_t RadioMessageHandler::lastInterruptTime = 0;
+volatile int RadioMessageHandler::lastCompteur = 0;
+volatile bool RadioMessageHandler::overflowOccurred = false;
 
 RadioMessageHandler::RadioMessageHandler(int pin) : radioPin(pin), status(WAITING_MSG) {
     currentMessage.command = INVALID_COMMAND;
@@ -18,29 +20,50 @@ void RadioMessageHandler::begin() {
     attachInterrupt(digitalPinToInterrupt(radioPin), onInterrupt, CHANGE);
 }
 
+void IRAM_ATTR RadioMessageHandler::onInterrupt() {
+    // Keep only essential operations in interrupt
+    if (!interruptionActive) return;  // Exit early if not active
+    
+    if (compteur >= MAX_INTS - 1) {
+        interruptionActive = false;
+        overflowOccurred = true;
+        return;
+    }
 
+    unsigned long currentMicros = micros();
+    int largeur = currentMicros - memoMicros;
+    
+    // Store timing only if reasonable
+    if (largeur <= 50000) {  // Basic sanity check
+        compteur++;
+        MyInts[compteur] = largeur;
+    }
+    
+    memoMicros = currentMicros;
+    lastInterruptTime = currentMicros;
+    lastCompteur = compteur;
+}
+
+// Add a new method to check interrupt status periodically
 void RadioMessageHandler::processMessages() {
+    if (overflowOccurred) {
+        Serial.println("Buffer overflow detected!");
+        printDebugInfo();
+        overflowOccurred = false;  // Reset the flag
+    }
+
     if (compteur > 60) {
         interruptionActive = false;
-        compteur = 0;
+        Serial.println("Processing message...");
+        printDebugInfo();
         decodeMessage();
-        Serial.println("---------Message decoded");
+        compteur = 0;  // Reset counter
+        interruptionActive = true;  // Re-enable interrupts
     }
 }
 
 bool RadioMessageHandler::isMessageReady() const {
     return status == MSG_READY;
-}
-
-void IRAM_ATTR RadioMessageHandler::onInterrupt() {
-    if (interruptionActive) {  // Use static member directly
-        compteur++;            // Use static member directly
-        previousMicros = micros();
-        int largeur = previousMicros - memoMicros;
-        memoMicros = previousMicros;
-        MyInts[compteur] = largeur;
-    }
-    Serial.println("Interrupt");
 }
 
 bool RadioMessageHandler::validateTiming(unsigned long timing, unsigned long min, unsigned long max) const {
@@ -130,4 +153,17 @@ void RadioMessageHandler::decodeMessage() {
     currentMessage.isValid = true;
     currentMessage.repeatCount++;
     status = MSG_READY;
+}
+
+void RadioMessageHandler::printDebugInfo() {
+    Serial.println("Debug Info:");
+    Serial.printf("Last interrupt time: %lu\n", lastInterruptTime);
+    Serial.printf("Last compteur value: %d\n", lastCompteur);
+    Serial.printf("Overflow occurred: %s\n", overflowOccurred ? "Yes" : "No");
+    
+    // Print last few timing values if available
+    int start = max(0, lastCompteur - 5);
+    for (int i = start; i <= lastCompteur; i++) {
+        Serial.printf("MyInts[%d] = %d\n", i, MyInts[i]);
+    }
 }

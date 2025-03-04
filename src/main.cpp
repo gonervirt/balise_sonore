@@ -91,7 +91,7 @@ LedManager ledManager(GREEN_LED_PIN, YELLOW_LED_PIN, RED_LED_PIN);
 RadioMessageHandler radioHandler(RADIO_PIN);
 
 // Add state machine variables
-AppState currentState = STARTING;
+AppState currentState = READY_WAITING;
 unsigned long stateStartTime = 0;
 bool stateInitialized = false;
 

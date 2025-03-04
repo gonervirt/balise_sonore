@@ -32,6 +32,8 @@ private:
     static const unsigned long GAP_MIN = 500;
     static const unsigned long GAP_MAX = 700;
     
+    static const int MAX_INTS = 100;  // Add this constant
+
     const int radioPin;
     MessageStatus status;
     DecodedMessage currentMessage;
@@ -39,8 +41,13 @@ private:
     static volatile int compteur;
     static volatile unsigned long previousMicros;
     static volatile unsigned long memoMicros;
-    static volatile int MyInts[100];
+    static volatile int MyInts[MAX_INTS];  // Update array declaration
     static volatile bool interruptionActive;
+
+    // Add debug variables
+    static volatile uint32_t lastInterruptTime;
+    static volatile int lastCompteur;
+    static volatile bool overflowOccurred;
 
     bool validateTiming(unsigned long timing, unsigned long min, unsigned long max) const;
     bool isSync(unsigned long timing) const;
@@ -64,4 +71,12 @@ public:
         currentMessage.repeatCount = 0;
     }
     const DecodedMessage& getCurrentMessage() const { return currentMessage; }
+
+    // Add debug accessor
+    static bool getOverflowStatus() { return overflowOccurred; }
+    static int getLastCompteur() { return lastCompteur; }
+    static uint32_t getLastInterruptTime() { return lastInterruptTime; }
+
+    // Add debug method declaration
+    void printDebugInfo();
 };

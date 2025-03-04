@@ -49,7 +49,7 @@ void TonePlayer::begin() {
     //myMP3player.reset();
     //delay(4000);
     
-    
+    /*
     int count = 0;
     while (digitalRead(busyPin) == LOW && count < 10) {
         Serial.print(F("."));
@@ -57,6 +57,7 @@ void TonePlayer::begin() {
         update(); // Clear any pending events
         count++;
     }
+        */
     //update(); // Clear any pending events
     Serial.println(F(""));
     
@@ -96,7 +97,7 @@ bool TonePlayer::checkPlayerState() {
 
     bool isReady = true;
     
-    if (isReady && playing) {
+    if (isReady && !playing) {
         Serial.println("Tone finished (busy pin is HIGH)");
         return true;
     }
