@@ -24,6 +24,7 @@ void RadioMessageHandler::processMessages() {
         interruptionActive = false;
         compteur = 0;
         decodeMessage();
+        Serial.println("---------Message decoded");
     }
 }
 
@@ -39,6 +40,7 @@ void IRAM_ATTR RadioMessageHandler::onInterrupt() {
         memoMicros = previousMicros;
         MyInts[compteur] = largeur;
     }
+    Serial.println("Interrupt");
 }
 
 bool RadioMessageHandler::validateTiming(unsigned long timing, unsigned long min, unsigned long max) const {

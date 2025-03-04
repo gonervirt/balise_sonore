@@ -46,7 +46,7 @@
 #elif defined(BOARD_ESP32_S3)
     #define RXD2 18
     #define TXD2 17
-    #define BUSY_PIN 19
+    #define BUSY_PIN 48
     #define BUTTON_PIN 14
     #define GREEN_LED_PIN 47
     #define YELLOW_LED_PIN 42
@@ -152,6 +152,7 @@ void setup()
     Serial.println("RadioMessageHandler initialized");
 
     stateStartTime = millis(); // Initialize state timing
+    stateInitialized = false;
 }
 
 void loop()

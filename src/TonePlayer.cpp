@@ -38,17 +38,17 @@ void TonePlayer::begin() {
         return;
     }
 
-    // Configure busy pin as input
-    pinMode(busyPin, INPUT);
+    // Configure busy pin as input with pull-up
+    pinMode(busyPin, INPUT_PULLUP);
 
     serial2player->begin(9600);
     myMP3player.setTimeOut(1000);
-    myMP3player.begin(*serial2player, /*isACK = */false, /*doReset = */true);
+    myMP3player.begin(*serial2player, /*isACK = */true, /*doReset = */true);
     Serial.println(F("Waiting DF player"));
     delay(4000);
     //myMP3player.reset();
     //delay(4000);
-    /*
+    
     
     int count = 0;
     while (digitalRead(busyPin) == LOW && count < 10) {
@@ -59,7 +59,7 @@ void TonePlayer::begin() {
     }
     //update(); // Clear any pending events
     Serial.println(F(""));
-    */
+    
 
     Serial.println(F("DFPlayer Mini online."));
     myMP3player.enableDAC();
@@ -88,7 +88,13 @@ void TonePlayer::playTone(int messageNumber) {
  */
 bool TonePlayer::checkPlayerState() {
     // HIGH means player is ready/idle, LOW means it's busy playing
-    bool isReady = digitalRead(busyPin) == HIGH;
+    
+    //bool isReady = digitalRead(busyPin) == HIGH;
+    //Serial.println("Checking player state " + String(isReady));
+    playing = false;
+    return false;
+
+    bool isReady = true;
     
     if (isReady && playing) {
         Serial.println("Tone finished (busy pin is HIGH)");
