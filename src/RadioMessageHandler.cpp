@@ -1,17 +1,12 @@
 #include "RadioMessageHandler.h"
 
-// Define static pattern timings
+// Remove unused static member initializations
 constexpr float RadioMessageHandler::PATTERN_TIMINGS[];
-
-// Keep static member initializations
 volatile int RadioMessageHandler::compteur = 0;
 volatile unsigned long RadioMessageHandler::previousMicros = 0;
 volatile unsigned long RadioMessageHandler::memoMicros = 0;
 volatile int RadioMessageHandler::MyInts[100] = {0};
 volatile bool RadioMessageHandler::interruptionActive = true;
-volatile uint32_t RadioMessageHandler::lastInterruptTime = 0;
-volatile int RadioMessageHandler::lastCompteur = 0;
-volatile bool RadioMessageHandler::overflowOccurred = false;
 volatile int RadioMessageHandler::head = 0;
 volatile int RadioMessageHandler::tail = 0;
 
@@ -37,13 +32,10 @@ void IRAM_ATTR RadioMessageHandler::onInterrupt() {
     if (largeur <= 50000) {  // Basic sanity check
         MyInts[head] = largeur;
         head = incrementIndex(head);
-        // No need to check for overflow anymore
         compteur++;
     }
     
     memoMicros = currentMicros;
-    lastInterruptTime = currentMicros;
-    lastCompteur = compteur;
 }
 
 void RadioMessageHandler::decodeMessage() {
@@ -115,6 +107,13 @@ bool RadioMessageHandler::isMessageReady() const {
            status == MSG_READY && 
            currentMessage.isValid && 
            currentMessage.command == ACTIVATE_SOUND;
+}
+
+void RadioMessageHandler::resetMessage() {
+    status = WAITING_MSG;
+    currentMessage.isValid = false;
+    currentMessage.repeatCount = 0;
+    messageProcessed = false;
 }
 
 // Keep debug methods

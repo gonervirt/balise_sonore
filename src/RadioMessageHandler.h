@@ -59,11 +59,6 @@ private:
     static volatile int MyInts[BUFFER_SIZE];  // Buffer stays the same size
     static volatile bool interruptionActive;
 
-    // Add debug variables
-    static volatile uint32_t lastInterruptTime;
-    static volatile int lastCompteur;
-    static volatile bool overflowOccurred;
-
     // Add head and tail index for circular buffer
     static volatile int head;
     static volatile int tail;
@@ -91,19 +86,6 @@ public:
     void begin();
     void processMessages();
     bool isMessageReady() const;
-    DecodedMessage getLastMessage() const { return currentMessage; }
-    void resetMessage() { 
-        status = WAITING_MSG; 
-        currentMessage.isValid = false;
-        currentMessage.repeatCount = 0;
-        messageProcessed = false;  // Reset processed flag
-    }
-    
-    // Remove getCurrentMessage()
-    
-    // Debug accessors remain the same
-    static bool getOverflowStatus() { return overflowOccurred; }
-    static int getLastCompteur() { return lastCompteur; }
-    static uint32_t getLastInterruptTime() { return lastInterruptTime; }
-    void printDebugInfo();
+    void resetMessage();  // Remove implementation, keep declaration
+    void printDebugInfo();  // Keep this one as it's useful for general debugging
 };
