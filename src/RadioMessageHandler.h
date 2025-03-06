@@ -28,20 +28,6 @@ private:
     
     // Base timings (microseconds)
     static constexpr int SYNC_TIME = 625;
-    static constexpr int SYNC_MIN = 575;   // SYNC_TIME - 50
-    static constexpr int SYNC_MAX = 675;   // SYNC_TIME + 50
-    
-    static constexpr int BIT_1_TIME = 500;
-    static constexpr int BIT_1_MIN = 450;  // BIT_1_TIME - 50
-    static constexpr int BIT_1_MAX = 550;  // BIT_1_TIME + 50
-    
-    static constexpr int BIT_0_TIME = 250;
-    static constexpr int BIT_0_MIN = 200;  // BIT_0_TIME - 50
-    static constexpr int BIT_0_MAX = 300;  // BIT_0_TIME + 50
-    
-    static constexpr int SHORT_TIME = 207;
-    static constexpr int SHORT_MIN = 157;  // SHORT_TIME - 50
-    static constexpr int SHORT_MAX = 257;  // SHORT_TIME + 50
 
     // Complete timing sequence for NFS32-002
     static constexpr float PATTERN_TIMINGS[] = {
@@ -82,12 +68,9 @@ private:
     static volatile int head;
     static volatile int tail;
 
-    bool validateTiming(unsigned long timing, unsigned long min, unsigned long max) const;
-    bool isSync(unsigned long timing) const;
-    bool isBit1(unsigned long timing) const;
-    bool isBit0(unsigned long timing) const;
-    bool isShortPulse(unsigned long timing) const;  // Added declaration
     void decodeMessage();
+    bool matchTiming(unsigned long timing, float expected) const;
+    bool matchPattern(int startIndex) const;
 
     static RadioMessageHandler* instance;
     static void IRAM_ATTR onInterrupt();
@@ -98,14 +81,8 @@ private:
     }
     
     int getBufferSize() const {
-        if (head == tail) {
-            return 0;  // Buffer empty
-        }
-        return ((head + BUFFER_SIZE - tail) % BUFFER_SIZE);
+        return (head >= tail) ? (head - tail) : (BUFFER_SIZE - tail + head);
     }
-
-    bool matchTiming(unsigned long timing, float expected) const;
-    bool matchPattern(int startIndex) const;
 
 public:
     RadioMessageHandler(int pin);
