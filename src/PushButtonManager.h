@@ -1,22 +1,14 @@
-#ifndef PUSHBUTTONMANAGER_H
-#define PUSHBUTTONMANAGER_H
+#pragma once
+#include "InputHandler.h"
 
-#include "Arduino.h"
-
-
-// Classe pour gérer un bouton poussoir
-class PushButtonManager  {
-public:
-    PushButtonManager(uint8_t pin);
-    void begin();
-    void update();
-    bool isButtonPressed() const;
-    void releaseButtonPressed();
-
+class PushButtonManager : public InputHandler {
 private:
-    uint8_t pin;
-    bool buttonPressed;
     bool buttonLocked;
-};
 
-#endif // PUSHBUTTONMANAGER_H
+public:
+    explicit PushButtonManager(uint8_t pin);
+    void begin() override;
+    void update() override;
+    void resetActivation() override;  // Add override
+    bool isActivated() const override { return false; }
+};

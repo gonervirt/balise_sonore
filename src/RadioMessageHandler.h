@@ -1,5 +1,6 @@
 #pragma once
 #include <Arduino.h>
+#include "InputHandler.h"
 
 enum MessageStatus {
     WAITING_MSG,
@@ -20,7 +21,7 @@ struct DecodedMessage {
     uint8_t repeatCount;
 };
 
-class RadioMessageHandler {
+class RadioMessageHandler : public InputHandler {
 private:
     static constexpr float ERROR_RATE = 0.3f;
     static constexpr float ERROR_RATE_MIN = 0.7f;  // 1.0f - ERROR_RATE
@@ -47,23 +48,19 @@ private:
         250.0f, 250.0f, 250.0f, 250.0f
     };
 
-    static const int BUFFER_SIZE = 100;  // Renamed from MAX_INTS
+    static const int BUFFER_SIZE = 100;
 
-    const int radioPin;
     MessageStatus status;
     DecodedMessage currentMessage;
 
     static volatile int compteur;
     static volatile unsigned long previousMicros;
     static volatile unsigned long memoMicros;
-    static volatile int MyInts[BUFFER_SIZE];  // Buffer stays the same size
+    static volatile int MyInts[BUFFER_SIZE];
     static volatile bool interruptionActive;
-
-    // Add head and tail index for circular buffer
     static volatile int head;
     static volatile int tail;
-
-    bool messageProcessed;  // Add new flag
+    bool messageReceived;
 
     void decodeMessage();
     bool matchTiming(unsigned long timing, float expected) const;
@@ -82,10 +79,15 @@ private:
     }
 
 public:
-    RadioMessageHandler(int pin);
-    void begin();
-    void processMessages();
-    bool isMessageReady() const;
-    void resetMessage();  // Remove implementation, keep declaration
-    void printDebugInfo();  // Keep this one as it's useful for general debugging
+    explicit RadioMessageHandler(uint8_t pin);
+    void begin() override;
+    void update() override;
+    void printDebugInfo();
+    bool isActivated() const override { return messageReceived; }
+    void resetActivation() override { 
+        messageReceived = false; 
+        status = WAITING_MSG;
+        currentMessage.isValid = false;
+        currentMessage.repeatCount = 0;
+    }
 };

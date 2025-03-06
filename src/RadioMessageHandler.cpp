@@ -11,15 +11,16 @@ volatile int RadioMessageHandler::head = 0;
 volatile int RadioMessageHandler::tail = 0;
 
 // Keep constructor, begin, and interrupt handler
-RadioMessageHandler::RadioMessageHandler(int pin) : radioPin(pin), status(WAITING_MSG), messageProcessed(false) {
+RadioMessageHandler::RadioMessageHandler(uint8_t pin) 
+    : InputHandler(pin), status(WAITING_MSG), messageReceived(false) {
     currentMessage.command = INVALID_COMMAND;
     currentMessage.isValid = false;
     currentMessage.repeatCount = 0;
 }
 
 void RadioMessageHandler::begin() {
-    pinMode(radioPin, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(radioPin), onInterrupt, CHANGE);
+    pinMode(pin, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(pin), onInterrupt, CHANGE);
 }
 
 void IRAM_ATTR RadioMessageHandler::onInterrupt() {
@@ -86,37 +87,25 @@ bool RadioMessageHandler::matchPattern(int startIndex) const {
     return true;
 }
 
-void RadioMessageHandler::processMessages() {
+void RadioMessageHandler::update() {  // Renamed from processMessages
     int bufferSize = getBufferSize();
     
-    if (bufferSize > 46) {  // Enough data for one complete pattern
+    if (bufferSize > 46) {
         interruptionActive = false;
         decodeMessage();
         if (status == MSG_READY) {
-            currentMessage.command = ACTIVATE_SOUND;  // For now, assume any valid pattern is activation
+            currentMessage.command = ACTIVATE_SOUND;
             currentMessage.isValid = true;
             currentMessage.repeatCount++;
-            messageProcessed = false;  // New message received, not yet processed
+            messageReceived = true;
         }
         interruptionActive = true;
     }
 }
 
-bool RadioMessageHandler::isMessageReady() const {
-    return !messageProcessed &&  // Only return true if message hasn't been processed
-           status == MSG_READY && 
-           currentMessage.isValid && 
-           currentMessage.command == ACTIVATE_SOUND;
-}
+// Remove isMessageReady() and resetMessage() implementations
+// They are replaced by base class methods isActivated() and resetActivation()
 
-void RadioMessageHandler::resetMessage() {
-    status = WAITING_MSG;
-    currentMessage.isValid = false;
-    currentMessage.repeatCount = 0;
-    messageProcessed = false;
-}
-
-// Keep debug methods
 void RadioMessageHandler::printDebugInfo() {
     Serial.println("Debug Info:");
     Serial.printf("Buffer: head=%d, tail=%d, size=%d\n", head, tail, getBufferSize());

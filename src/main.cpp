@@ -225,17 +225,16 @@ void loop()
         }
         // recurring
         pushButtonManager.update();
-        radioHandler.processMessages();  // Add this line to process radio messages
+        radioHandler.update();
 
-        if (pushButtonManager.isButtonPressed() || radioHandler.isMessageReady())
+        if (pushButtonManager.isActivated() || radioHandler.isActivated())
         {
             currentState = PLAYING_TONE;
             stateStartTime = millis();
             stateInitialized = false;
-            pushButtonManager.releaseButtonPressed();
-            // Reset radio message if it triggered the state change
-            if (radioHandler.isMessageReady()) {
-                radioHandler.resetMessage();
+            pushButtonManager.resetActivation();
+            if (radioHandler.isActivated()) {
+                radioHandler.resetActivation();
             }
         }
         break;
