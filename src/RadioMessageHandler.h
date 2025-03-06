@@ -68,6 +68,8 @@ private:
     static volatile int head;
     static volatile int tail;
 
+    bool messageProcessed;  // Add new flag
+
     void decodeMessage();
     bool matchTiming(unsigned long timing, float expected) const;
     bool matchPattern(int startIndex) const;
@@ -94,14 +96,14 @@ public:
         status = WAITING_MSG; 
         currentMessage.isValid = false;
         currentMessage.repeatCount = 0;
+        messageProcessed = false;  // Reset processed flag
     }
-    const DecodedMessage& getCurrentMessage() const { return currentMessage; }
-
-    // Add debug accessor
+    
+    // Remove getCurrentMessage()
+    
+    // Debug accessors remain the same
     static bool getOverflowStatus() { return overflowOccurred; }
     static int getLastCompteur() { return lastCompteur; }
     static uint32_t getLastInterruptTime() { return lastInterruptTime; }
-
-    // Add debug method declaration
     void printDebugInfo();
 };

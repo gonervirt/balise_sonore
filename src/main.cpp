@@ -227,14 +227,13 @@ void loop()
         pushButtonManager.update();
         radioHandler.processMessages();  // Add this line to process radio messages
 
-        if (pushButtonManager.isButtonPressed() || 
-            (radioHandler.isMessageReady() && radioHandler.getCurrentMessage().command == ACTIVATE_SOUND))
+        if (pushButtonManager.isButtonPressed() || radioHandler.isMessageReady())
         {
             currentState = PLAYING_TONE;
             stateStartTime = millis();
             stateInitialized = false;
             pushButtonManager.releaseButtonPressed();
-            // Reset radio message status
+            // Reset radio message if it triggered the state change
             if (radioHandler.isMessageReady()) {
                 radioHandler.resetMessage();
             }

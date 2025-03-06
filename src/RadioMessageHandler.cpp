@@ -16,7 +16,7 @@ volatile int RadioMessageHandler::head = 0;
 volatile int RadioMessageHandler::tail = 0;
 
 // Keep constructor, begin, and interrupt handler
-RadioMessageHandler::RadioMessageHandler(int pin) : radioPin(pin), status(WAITING_MSG) {
+RadioMessageHandler::RadioMessageHandler(int pin) : radioPin(pin), status(WAITING_MSG), messageProcessed(false) {
     currentMessage.command = INVALID_COMMAND;
     currentMessage.isValid = false;
     currentMessage.repeatCount = 0;
@@ -104,13 +104,17 @@ void RadioMessageHandler::processMessages() {
             currentMessage.command = ACTIVATE_SOUND;  // For now, assume any valid pattern is activation
             currentMessage.isValid = true;
             currentMessage.repeatCount++;
+            messageProcessed = false;  // New message received, not yet processed
         }
         interruptionActive = true;
     }
 }
 
 bool RadioMessageHandler::isMessageReady() const {
-    return status == MSG_READY && currentMessage.isValid;
+    return !messageProcessed &&  // Only return true if message hasn't been processed
+           status == MSG_READY && 
+           currentMessage.isValid && 
+           currentMessage.command == ACTIVATE_SOUND;
 }
 
 // Keep debug methods
