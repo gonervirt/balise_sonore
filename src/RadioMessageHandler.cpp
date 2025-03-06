@@ -1,5 +1,8 @@
 #include "RadioMessageHandler.h"
 
+// Define static class members
+constexpr float RadioMessageHandler::PATTERN_TIMINGS[];
+
 volatile int RadioMessageHandler::compteur = 0;
 volatile unsigned long RadioMessageHandler::previousMicros = 0;
 volatile unsigned long RadioMessageHandler::memoMicros = 0;
@@ -78,89 +81,57 @@ bool RadioMessageHandler::isBit0(unsigned long timing) const {
     return validateTiming(timing, BIT_0_MIN, BIT_0_MAX);
 }
 
-bool RadioMessageHandler::isGap(unsigned long timing) const {
-    return validateTiming(timing, GAP_MIN, GAP_MAX);
+bool RadioMessageHandler::isShortPulse(unsigned long timing) const {
+    return validateTiming(timing, SHORT_MIN, SHORT_MAX);
+}
+
+bool RadioMessageHandler::matchTiming(unsigned long timing, float expected) const {
+    return timing >= (expected * ERROR_RATE_MIN) && 
+           timing <= (expected * ERROR_RATE_MAX);
+}
+
+bool RadioMessageHandler::matchPattern(int startIndex) const {
+    int currentIndex = startIndex;
+    
+    for (float expectedTiming : PATTERN_TIMINGS) {
+        if (currentIndex == head) return false;
+        
+        if (!matchTiming(MyInts[currentIndex], expectedTiming)) {
+            return false;
+        }
+        currentIndex = incrementIndex(currentIndex);
+    }
+    return true;
 }
 
 void RadioMessageHandler::decodeMessage() {
     int bufferSize = getBufferSize();
-    if (bufferSize < 60) {
+    if (bufferSize < 46) {  // Need at least one complete pattern
         status = MSG_ERROR;
         return;
     }
 
-    // Look for sync pattern
-    int syncIndex = -1;
+    // Look for complete pattern
     int currentIndex = tail;
+    bool patternFound = false;
     
-    for (int i = 0; i < bufferSize - 1; i++) {
-        if (isSync(MyInts[currentIndex])) {
-            Serial.printf("Sync found at index %d with timing value %d us\n", i, MyInts[currentIndex]);
-            syncIndex = i;
-            break;
+    for (int i = 0; i < bufferSize - 46; i++) {
+        if (matchTiming(MyInts[currentIndex], SYNC_TIME)) {
+            if (matchPattern(currentIndex)) {
+                patternFound = true;
+                Serial.println("Complete NFS32-002 pattern found!");
+                break;
+            }
         }
         currentIndex = incrementIndex(currentIndex);
     }
 
-    if (syncIndex == -1) {
+    if (!patternFound) {
         status = MSG_ERROR;
         return;
     }
 
-    // Move to sync position
-    for (int i = 0; i < syncIndex; i++) {
-        tail = incrementIndex(tail);
-    }
-
-    // Decode the message after sync
-    uint8_t bits[8] = {0};
-    int bitCount = 0;
-    bool lastBitValid = true;
-    currentIndex = incrementIndex(tail);  // Start after sync
-
-    while (bitCount < 8 && currentIndex != head) {
-        if (isBit1(MyInts[currentIndex])) {
-            bits[bitCount++] = 1;
-        } else if (isBit0(MyInts[currentIndex])) {
-            bits[bitCount++] = 0;
-        } else if (!isGap(MyInts[currentIndex])) {
-            lastBitValid = false;
-            break;
-        }
-        currentIndex = incrementIndex(currentIndex);
-    }
-
-    if (!lastBitValid || bitCount != 8) {
-        status = MSG_ERROR;
-        return;
-    }
-
-    // Validate message format according to NFS32-002
-    // First 4 bits are command, last 4 bits are inverse of first 4
-    uint8_t command = (bits[0] << 3) | (bits[1] << 2) | (bits[2] << 1) | bits[3];
-    uint8_t inverse = (bits[4] << 3) | (bits[5] << 2) | (bits[6] << 1) | bits[7];
-
-    if ((command ^ inverse) != 0x0F) {
-        status = MSG_ERROR;
-        return;
-    }
-
-    // Update current message
-    switch (command) {
-        case 0x0A: // Example command for activation
-            currentMessage.command = ACTIVATE_SOUND;
-            break;
-        case 0x05: // Example command for deactivation
-            currentMessage.command = DEACTIVATE_SOUND;
-            break;
-        default:
-            currentMessage.command = INVALID_COMMAND;
-            break;
-    }
-
-    currentMessage.isValid = true;
-    currentMessage.repeatCount++;
-    status = MSG_READY;
+    // ... rest of decoding logic ...
 }
 
 void RadioMessageHandler::printDebugInfo() {

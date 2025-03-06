@@ -22,16 +22,45 @@ struct DecodedMessage {
 
 class RadioMessageHandler {
 private:
-    // Timing constants (microseconds) according to NFS32-002
-    static const unsigned long SYNC_MIN = 4800;
-    static const unsigned long SYNC_MAX = 5200;
-    static const unsigned long BIT_1_MIN = 1800;
-    static const unsigned long BIT_1_MAX = 2200;
-    static const unsigned long BIT_0_MIN = 800;
-    static const unsigned long BIT_0_MAX = 1200;
-    static const unsigned long GAP_MIN = 500;
-    static const unsigned long GAP_MAX = 700;
+    static constexpr float ERROR_RATE = 0.3f;
+    static constexpr float ERROR_RATE_MIN = 0.7f;  // 1.0f - ERROR_RATE
+    static constexpr float ERROR_RATE_MAX = 1.3f;  // 1.0f + ERROR_RATE
     
+    // Base timings (microseconds)
+    static constexpr int SYNC_TIME = 625;
+    static constexpr int SYNC_MIN = 575;   // SYNC_TIME - 50
+    static constexpr int SYNC_MAX = 675;   // SYNC_TIME + 50
+    
+    static constexpr int BIT_1_TIME = 500;
+    static constexpr int BIT_1_MIN = 450;  // BIT_1_TIME - 50
+    static constexpr int BIT_1_MAX = 550;  // BIT_1_TIME + 50
+    
+    static constexpr int BIT_0_TIME = 250;
+    static constexpr int BIT_0_MIN = 200;  // BIT_0_TIME - 50
+    static constexpr int BIT_0_MAX = 300;  // BIT_0_TIME + 50
+    
+    static constexpr int SHORT_TIME = 207;
+    static constexpr int SHORT_MIN = 157;  // SHORT_TIME - 50
+    static constexpr int SHORT_MAX = 257;  // SHORT_TIME + 50
+
+    // Complete timing sequence for NFS32-002
+    static constexpr float PATTERN_TIMINGS[] = {
+        625,    // Sync
+        312.5f, 312.5f,  // Manchester bits
+        207.5f, 207.5f,  // Manchester bits
+        500.0f, 500.0f,  // Manchester bits
+        250.0f, 250.0f, 250.0f, 250.0f,  // Manchester bits
+        500.0f, 500.0f,  // Manchester bits
+        250.0f, 250.0f, 250.0f, 250.0f,  // More Manchester bits
+        250.0f, 250.0f, 250.0f, 250.0f,
+        250.0f, 250.0f, 500.0f, 250.0f,
+        250.0f, 500.0f, 250.0f, 250.0f,
+        500.0f, 250.0f, 250.0f, 250.0f,
+        250.0f, 250.0f, 250.0f, 250.0f,
+        250.0f, 250.0f, 250.0f, 250.0f,
+        250.0f, 250.0f, 250.0f, 250.0f
+    };
+
     static const int BUFFER_SIZE = 100;  // Renamed from MAX_INTS
 
     const int radioPin;
@@ -57,7 +86,7 @@ private:
     bool isSync(unsigned long timing) const;
     bool isBit1(unsigned long timing) const;
     bool isBit0(unsigned long timing) const;
-    bool isGap(unsigned long timing) const;
+    bool isShortPulse(unsigned long timing) const;  // Added declaration
     void decodeMessage();
 
     static RadioMessageHandler* instance;
@@ -74,6 +103,9 @@ private:
         }
         return ((head + BUFFER_SIZE - tail) % BUFFER_SIZE);
     }
+
+    bool matchTiming(unsigned long timing, float expected) const;
+    bool matchPattern(int startIndex) const;
 
 public:
     RadioMessageHandler(int pin);
