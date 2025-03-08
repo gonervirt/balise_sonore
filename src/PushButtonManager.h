@@ -10,5 +10,5 @@ public:
     void begin() override;
     void update() override;
     void resetActivation() override;  // Add override
-    bool isActivated() const override { return false; }
+    bool isActivated() const override { return buttonLocked; }
 };

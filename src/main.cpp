@@ -33,7 +33,6 @@
     #define GREEN_LED_PIN 2
     #define YELLOW_LED_PIN 1
     #define RED_LED_PIN 0
-    #define RADIO_PIN 9
 #elif defined(BOARD_ESP32_S2)
     #define RXD2 17
     #define TXD2 18
@@ -47,7 +46,6 @@
     #define RXD2 18
     #define TXD2 17
     #define BUSY_PIN 48
-    #define BUTTON_PIN 14
     #define GREEN_LED_PIN 47
     #define YELLOW_LED_PIN 42
     #define RED_LED_PIN 13
@@ -86,9 +84,17 @@ Config config;
 WiFiManager wifiManager(config);
 WebServerManager webServer(config);
 TonePlayer tonePlayer(RXD2, TXD2, BUSY_PIN, config);  // Updated constructor call
-PushButtonManager pushButtonManager(BUTTON_PIN);
+//PushButtonManager pushButtonManager(BUTTON_PIN);
 LedManager ledManager(GREEN_LED_PIN, YELLOW_LED_PIN, RED_LED_PIN);
-RadioMessageHandler radioHandler(RADIO_PIN);
+//RadioMessageHandler radioHandler(RADIO_PIN);
+
+#ifdef BOARD_LOLIN_C3_MINI
+PushButtonManager inputHandler(BUTTON_PIN);
+#elif defined(BOARD_ESP32_S3)
+RadioMessageHandler inputHandler(RADIO_PIN);
+#else
+#error "No input handler defined for this board"
+#endif
 
 // Add state machine variables
 AppState currentState = READY_WAITING;
@@ -145,11 +151,8 @@ void setup()
     Serial.println("TonePlayer initialized");
     ledManager.setGreen();
 
-    //pushButtonManager.begin(); // Initialisation du gestionnaire de bouton poussoir
-    Serial.println("PushButtonManager initialized");
-
-    radioHandler.begin(); // Initialisation du gestionnaire de messages radio
-    Serial.println("RadioMessageHandler initialized");
+    inputHandler.begin(); // Initialisation du gestionnaire de messages radio
+    Serial.println("InputHandler initialized");
 
     stateStartTime = millis(); // Initialize state timing
     stateInitialized = false;
@@ -224,18 +227,14 @@ void loop()
             stateInitialized = true;
         }
         // recurring
-        pushButtonManager.update();
-        radioHandler.update();
+        inputHandler.update();
 
-        if (pushButtonManager.isActivated() || radioHandler.isActivated())
+        if (inputHandler.isActivated())
         {
             currentState = PLAYING_TONE;
             stateStartTime = millis();
             stateInitialized = false;
-            pushButtonManager.resetActivation();
-            if (radioHandler.isActivated()) {
-                radioHandler.resetActivation();
-            }
+
         }
         break;
 
@@ -307,6 +306,7 @@ void loop()
             if (millis() - stateStartTime >= INHIBIT_DURATION)
             {
                 currentState = READY_WAITING;
+                inputHandler.resetActivation();
                 stateStartTime = millis();
                 stateInitialized = false;
             }

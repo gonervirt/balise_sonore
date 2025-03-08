@@ -24,14 +24,14 @@ struct DecodedMessage {
 class RadioMessageHandler : public InputHandler {
 private:
     static constexpr float ERROR_RATE = 0.3f;
-    static constexpr float ERROR_RATE_MIN = 0.7f;  // 1.0f - ERROR_RATE
-    static constexpr float ERROR_RATE_MAX = 1.3f;  // 1.0f + ERROR_RATE
-    
+    static constexpr float ERROR_RATE_MIN = 0.7f;
+    static constexpr float ERROR_RATE_MAX = 1.3f;
+
     // Base timings (microseconds)
     static constexpr int SYNC_TIME = 625;
-
-    // Complete timing sequence for NFS32-002
-    static constexpr float PATTERN_TIMINGS[] = {
+    
+    // Define pattern timings directly in header
+    static constexpr float PATTERN_TIMINGS[41] = {
         625,    // Sync
         312.5f, 312.5f,  // Manchester bits
         207.5f, 207.5f,  // Manchester bits
@@ -44,50 +44,47 @@ private:
         250.0f, 500.0f, 250.0f, 250.0f,
         500.0f, 250.0f, 250.0f, 250.0f,
         250.0f, 250.0f, 250.0f, 250.0f,
-        250.0f, 250.0f, 250.0f, 250.0f,
         250.0f, 250.0f, 250.0f, 250.0f
     };
 
     static const int BUFFER_SIZE = 100;
+    static volatile unsigned long intervals[BUFFER_SIZE];
+    static volatile int bufferIndex;
+    static RadioMessageHandler* instance;
 
+    bool messageReceived;
     MessageStatus status;
     DecodedMessage currentMessage;
 
-    static volatile int compteur;
-    static volatile unsigned long previousMicros;
-    static volatile unsigned long memoMicros;
-    static volatile int MyInts[BUFFER_SIZE];
-    static volatile bool interruptionActive;
-    static volatile int head;
-    static volatile int tail;
-    bool messageReceived;
-
-    void decodeMessage();
+    static void IRAM_ATTR onInterrupt();
     bool matchTiming(unsigned long timing, float expected) const;
     bool matchPattern(int startIndex) const;
 
-    static RadioMessageHandler* instance;
-    static void IRAM_ATTR onInterrupt();
-
-    // Helper methods for circular buffer
-    static int incrementIndex(int index) {
-        return (index + 1) % BUFFER_SIZE;
-    }
-    
-    int getBufferSize() const {
-        return (head >= tail) ? (head - tail) : (BUFFER_SIZE - tail + head);
-    }
-
 public:
+    /**
+     * @brief Constructor for RadioMessageHandler
+     * @param pin The pin number to which the radio receiver is connected
+     */
     explicit RadioMessageHandler(uint8_t pin);
+
+    /**
+     * @brief Initializes the radio message handler by setting up the pin mode and interrupt
+     */
     void begin() override;
+
+    /**
+     * @brief Updates the state by checking for valid patterns in the buffer
+     */
     void update() override;
-    void printDebugInfo();
+
+    /**
+     * @brief Checks if a message has been received and is valid
+     * @return True if a valid message has been received, false otherwise
+     */
     bool isActivated() const override { return messageReceived; }
-    void resetActivation() override { 
-        messageReceived = false; 
-        status = WAITING_MSG;
-        currentMessage.isValid = false;
-        currentMessage.repeatCount = 0;
-    }
+
+    /**
+     * @brief Resets the activation state of the message handler
+     */
+    void resetActivation() override;
 };

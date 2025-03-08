@@ -1,121 +1,115 @@
 #include "RadioMessageHandler.h"
 
-// Remove unused static member initializations
+// Static member initializations
+RadioMessageHandler* RadioMessageHandler::instance = nullptr;
+volatile unsigned long RadioMessageHandler::intervals[BUFFER_SIZE] = {0};
 constexpr float RadioMessageHandler::PATTERN_TIMINGS[];
-volatile int RadioMessageHandler::compteur = 0;
-volatile unsigned long RadioMessageHandler::previousMicros = 0;
-volatile unsigned long RadioMessageHandler::memoMicros = 0;
-volatile int RadioMessageHandler::MyInts[100] = {0};
-volatile bool RadioMessageHandler::interruptionActive = true;
-volatile int RadioMessageHandler::head = 0;
-volatile int RadioMessageHandler::tail = 0;
+volatile int RadioMessageHandler::bufferIndex = 0;
 
-// Keep constructor, begin, and interrupt handler
+/**
+ * @brief Constructor for RadioMessageHandler
+ * @param pin The pin number to which the radio receiver is connected
+ */
 RadioMessageHandler::RadioMessageHandler(uint8_t pin) 
     : InputHandler(pin), status(WAITING_MSG), messageReceived(false) {
+    instance = this;
     currentMessage.command = INVALID_COMMAND;
     currentMessage.isValid = false;
-    currentMessage.repeatCount = 0;
 }
 
+/**
+ * @brief Initializes the radio message handler by setting up the pin mode and interrupt
+ */
 void RadioMessageHandler::begin() {
     pinMode(pin, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(pin), onInterrupt, CHANGE);
 }
 
+/**
+ * @brief Interrupt Service Routine (ISR) for handling pin change interrupts
+ */
 void IRAM_ATTR RadioMessageHandler::onInterrupt() {
-    if (!interruptionActive) return;
-
-    unsigned long currentMicros = micros();
-    int largeur = currentMicros - memoMicros;
-    
-    // Store timing only if reasonable
-    if (largeur <= 50000) {  // Basic sanity check
-        MyInts[head] = largeur;
-        head = incrementIndex(head);
-        compteur++;
-    }
-    
-    memoMicros = currentMicros;
-}
-
-void RadioMessageHandler::decodeMessage() {
-    int bufferSize = getBufferSize();
-    if (bufferSize < 46) {
-        status = MSG_ERROR;
-        return;
-    }
-
-    // Look for complete pattern
-    int currentIndex = tail;
-    bool patternFound = false;
-    
-    for (int i = 0; i < bufferSize - 46; i++) {
-        if (matchTiming(MyInts[currentIndex], SYNC_TIME)) {
-            if (matchPattern(currentIndex)) {
-                patternFound = true;
-                Serial.println("Complete NFS32-002 pattern found!");
-                break;
-            }
+    if (instance) {
+        static unsigned long lastTime = 0;
+        unsigned long currentTime = micros();
+        unsigned long interval = currentTime - lastTime;
+        lastTime = currentTime;
+        
+        // Filter out unreasonable intervals
+        if (interval >= 100 && interval <= 1000) {
+            intervals[bufferIndex] = interval;
+            bufferIndex = (bufferIndex + 1) % BUFFER_SIZE;
         }
-        currentIndex = incrementIndex(currentIndex);
     }
-
-    if (!patternFound) {
-        status = MSG_ERROR;
-        return;
-    }
-
-    status = MSG_READY;
 }
 
+/**
+ * @brief Matches the given timing with the expected timing within an error range
+ * @param timing The actual timing to match
+ * @param expected The expected timing
+ * @return True if the timing matches within the error range, false otherwise
+ */
 bool RadioMessageHandler::matchTiming(unsigned long timing, float expected) const {
-    return timing >= (expected * ERROR_RATE_MIN) && 
-           timing <= (expected * ERROR_RATE_MAX);
+    float minTime = expected * ERROR_RATE_MIN;
+    float maxTime = expected * ERROR_RATE_MAX;
+    return timing >= minTime && timing <= maxTime;
 }
 
+/**
+ * @brief Matches the pattern starting from the given index in the buffer
+ * @param startIndex The starting index in the buffer
+ * @return True if the complete pattern matches, false otherwise
+ */
 bool RadioMessageHandler::matchPattern(int startIndex) const {
-    int currentIndex = startIndex;
+    // First check for sync pulse
+    if (!matchTiming(intervals[startIndex], SYNC_TIME)) {
+        return false;
+    }
+
+    // Check the rest of the pattern
+    const int patternLength = sizeof(PATTERN_TIMINGS)/sizeof(PATTERN_TIMINGS[0]);
+    int matchCount = 1; // Start at 1 because we already matched the sync pulse
     
-    for (float expectedTiming : PATTERN_TIMINGS) {
-        if (currentIndex == head) return false;
-        if (!matchTiming(MyInts[currentIndex], expectedTiming)) {
+    for (int i = 1; i < patternLength; i++) {
+        int idx = (startIndex + i) % BUFFER_SIZE;
+        if (!matchTiming(intervals[idx], PATTERN_TIMINGS[i])) {
             return false;
         }
-        currentIndex = incrementIndex(currentIndex);
+        matchCount++;
     }
+    
     return true;
 }
 
-void RadioMessageHandler::update() {  // Renamed from processMessages
-    int bufferSize = getBufferSize();
+/**
+ * @brief Updates the state by checking for valid patterns in the buffer
+ */
+void RadioMessageHandler::update() {
+    if (messageReceived) {
+        return;
+    }
     
-    if (bufferSize > 46) {
-        interruptionActive = false;
-        decodeMessage();
-        if (status == MSG_READY) {
-            currentMessage.command = ACTIVATE_SOUND;
-            currentMessage.isValid = true;
-            currentMessage.repeatCount++;
-            messageReceived = true;
+    // Look for valid patterns in the buffer
+    for (int i = 0; i < BUFFER_SIZE; i++) {
+        if (matchTiming(intervals[i], SYNC_TIME)) {  // Using matchTiming for SYNC detection
+            if (matchPattern(i)) {
+                Serial.println("Complete NFS32-002 pattern found!");
+                messageReceived = true;
+                currentMessage.command = ACTIVATE_SOUND;
+                currentMessage.isValid = true;
+                status = MSG_READY;
+                return;
+            }
         }
-        interruptionActive = true;
     }
 }
 
-// Remove isMessageReady() and resetMessage() implementations
-// They are replaced by base class methods isActivated() and resetActivation()
-
-void RadioMessageHandler::printDebugInfo() {
-    Serial.println("Debug Info:");
-    Serial.printf("Buffer: head=%d, tail=%d, size=%d\n", head, tail, getBufferSize());
-    
-    // Print last few timing values
-    int current = tail;
-    int count = 0;
-    while (current != head && count < 5) {
-        Serial.printf("MyInts[%d] = %d\n", current, MyInts[current]);
-        current = incrementIndex(current);
-        count++;
-    }
+/**
+ * @brief Resets the activation state of the message handler
+ */
+void RadioMessageHandler::resetActivation() {
+    messageReceived = false;
+    status = WAITING_MSG;
+    currentMessage.isValid = false;
+    Serial.println("Message handler reset");
 }
