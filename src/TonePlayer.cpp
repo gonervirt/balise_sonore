@@ -45,16 +45,20 @@ void TonePlayer::begin() {
     myMP3player.setTimeOut(1000);
     myMP3player.begin(*serial2player, /*isACK = */true, /*doReset = */true);
     Serial.println(F("Waiting DF player"));
-    delay(1000);
-    //myMP3player.reset();
-    //delay(4000);
-    
-    
+    //delay(1000);
+
     int count = 0;
     while (!checkPlayerState() && count < 10) {
         Serial.print(F("."));
         delay(1000);
-        //update(); // Clear any pending events
+        count++;
+    }
+    myMP3player.reset();
+    delay(1000);
+    count = 0;
+    while (!checkPlayerState() && count < 10) {
+        Serial.print(F("."));
+        delay(1000);
         count++;
     }
         

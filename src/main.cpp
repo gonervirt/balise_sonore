@@ -33,15 +33,14 @@
     #define GREEN_LED_PIN 2
     #define YELLOW_LED_PIN 1
     #define RED_LED_PIN 0
-#elif defined(BOARD_ESP32_S2)
+#elif defined(BOARD_ESP32)
     #define RXD2 17
     #define TXD2 18
     #define BUSY_PIN 19
-    #define BUTTON_PIN 38
-    #define GREEN_LED_PIN 35
-    #define YELLOW_LED_PIN 36
+    #define GREEN_LED_PIN 47
+    #define YELLOW_LED_PIN 42
     #define RED_LED_PIN 37
-    #define RADIO_PIN 33
+    #define RADIO_PIN 15
 #elif defined(BOARD_ESP32_S3)
     #define RXD2 18
     #define TXD2 17
@@ -92,6 +91,8 @@ LedManager ledManager(GREEN_LED_PIN, YELLOW_LED_PIN, RED_LED_PIN);
 PushButtonManager inputHandler(BUTTON_PIN);
 #elif defined(BOARD_ESP32_S3)
 RadioMessageHandler inputHandler(RADIO_PIN);
+#elif defined(BOARD_ESP32)
+RadioMessageHandler inputHandler(RADIO_PIN);
 #else
 #error "No input handler defined for this board"
 #endif
@@ -132,7 +133,7 @@ void setup()
         ledManager.setYellow();
         delay(500);
     }
-    ledManager.off(); // Turn off LEDs after the wait period
+    ledManager.setGreenYellow(); // Turn off LEDs after the wait period
 
     Serial.begin(115200);
     waitForSerial(); // Wait up to 10 seconds for Serial
