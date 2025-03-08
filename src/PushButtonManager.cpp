@@ -9,7 +9,7 @@ void PushButtonManager::begin() {
 }
 
 void PushButtonManager::update() {
-    if (!buttonLocked && !digitalRead(pin)) {
+    if (!buttonLocked && digitalRead(pin)) {
         buttonLocked = true;
     }
 
@@ -17,4 +17,8 @@ void PushButtonManager::update() {
 
 void PushButtonManager::resetActivation() {
     buttonLocked = false;  // Reset button lock state
+}
+
+bool PushButtonManager::isActivated() const {
+    return buttonLocked;
 }

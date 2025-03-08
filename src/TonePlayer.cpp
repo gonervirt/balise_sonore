@@ -45,20 +45,20 @@ void TonePlayer::begin() {
     myMP3player.setTimeOut(1000);
     myMP3player.begin(*serial2player, /*isACK = */true, /*doReset = */true);
     Serial.println(F("Waiting DF player"));
-    delay(4000);
+    delay(1000);
     //myMP3player.reset();
     //delay(4000);
     
-    /*
+    
     int count = 0;
-    while (digitalRead(busyPin) == LOW && count < 10) {
+    while (!checkPlayerState() && count < 10) {
         Serial.print(F("."));
         delay(1000);
-        update(); // Clear any pending events
+        //update(); // Clear any pending events
         count++;
     }
-        */
-    //update(); // Clear any pending events
+        
+    update(); // Clear any pending events
     Serial.println(F(""));
     
 
@@ -90,15 +90,10 @@ void TonePlayer::playTone(int messageNumber) {
 bool TonePlayer::checkPlayerState() {
     // HIGH means player is ready/idle, LOW means it's busy playing
     
-    //bool isReady = digitalRead(busyPin) == HIGH;
+    bool isReady = digitalRead(busyPin) == HIGH;
     //Serial.println("Checking player state " + String(isReady));
-    playing = false;
-    return false;
-
-    bool isReady = true;
     
-    if (isReady && !playing) {
-        Serial.println("Tone finished (busy pin is HIGH)");
+    if (isReady) {
         return true;
     }
     
@@ -113,9 +108,7 @@ bool TonePlayer::checkPlayerState() {
  * 2. État direct du lecteur
  * 3. Timeout de sécurité
  */
-void TonePlayer::update() {
-    Serial.println("Tone update called");
-    
+void TonePlayer::update() {   
     // Check volume changes at the start of update
     checkVolumeChange();
     

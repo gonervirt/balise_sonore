@@ -97,7 +97,7 @@ RadioMessageHandler inputHandler(RADIO_PIN);
 #endif
 
 // Add state machine variables
-AppState currentState = READY_WAITING;
+AppState currentState = STARTING;
 unsigned long stateStartTime = 0;
 bool stateInitialized = false;
 
@@ -121,6 +121,19 @@ void waitForSerial(unsigned long timeout_ms = 10000)
 
 void setup()
 {
+    ledManager.begin(); // Initialisation du gestionnaire de LEDs
+    Serial.println("LedManager initialized");
+
+    // Blinking green and yellow LEDs for 10 seconds
+    unsigned long startWaitTime = millis();
+    while (millis() - startWaitTime < 10000) {
+        ledManager.setGreen();
+        delay(500);
+        ledManager.setYellow();
+        delay(500);
+    }
+    ledManager.off(); // Turn off LEDs after the wait period
+
     Serial.begin(115200);
     waitForSerial(); // Wait up to 10 seconds for Serial
 
@@ -129,9 +142,6 @@ void setup()
 
     // Initialize configuration
     config.begin();
-
-    ledManager.begin(); // Initialisation du gestionnaire de LEDs
-    Serial.println("LedManager initialized");
 
     // Initialize WiFi
     if (wifiManager.begin())
@@ -145,8 +155,6 @@ void setup()
         Serial.println("WiFi failed!");
     }
 
-
-    ledManager.setYellowRed();
     tonePlayer.begin(); // Initialisation du lecteur de tonalité
     Serial.println("TonePlayer initialized");
     ledManager.setGreen();
@@ -291,7 +299,7 @@ void loop()
         if (!stateInitialized)
         {
             Serial.println("State: INHIBITED");
-            ledManager.setRed();
+            ledManager.setGreenYellow();
             stateInitialized = true;
         }
 

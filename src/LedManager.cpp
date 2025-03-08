@@ -2,7 +2,7 @@
 
 // Constructeur de la classe LedManager
 LedManager::LedManager(uint8_t greenPin, uint8_t yellowPin, uint8_t redPin)
-    : greenPin(greenPin), yellowPin(yellowPin), redPin(redPin) {}
+    : greenPin(greenPin), yellowPin(yellowPin), redPin(redPin){}
 
 // Initialisation des broches des LEDs
 void LedManager::begin() {
@@ -43,11 +43,12 @@ void LedManager::setRed() {
     setLed(redPin);
     //Serial.println("LED set to red");
 }
+
 // Allume la LED rouge
-void LedManager::setYellowRed() {
+void LedManager::setGreenYellow() {
     off();
     setLed(yellowPin);
-    setLed(redPin);
+    setLed(greenPin);
     //Serial.println("LED set to red");
 }
 
@@ -62,3 +63,5 @@ void LedManager::off() {
 void LedManager::setLed(uint8_t pin) {
     digitalWrite(pin, HIGH);
 }
+
+

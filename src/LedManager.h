@@ -10,9 +10,10 @@ public:
     void begin();
     void setGreen();
     void setYellow();
-    void setYellowRed();
+    void setGreenYellow();
     void setRed();
     void off();
+
 
 private:
     uint8_t greenPin;
