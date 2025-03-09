@@ -30,6 +30,10 @@
 
 #include <WiFi.h>
 #include "Config.h"
+#include "esp_event.h"
+
+// Define WiFi task priority
+#define WIFI_TASK_PRIORITY 5
 
 /**
  * @brief WiFi connection manager
@@ -45,8 +49,13 @@ private:
     uint8_t channel;      // WiFi channel (1-13)
     bool hidden_ssid;     // SSID visibility flag
     unsigned long lastCheckTime;  // New variable for timing
+    unsigned long lastLogTime;    // New variable for logging
     
     void checkAndRestartAP();    // New private method
+    void logAPStatus();          // New private method
+
+    // Add event handler declaration
+    static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
 
 public:
     /**
