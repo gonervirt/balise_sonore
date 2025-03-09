@@ -18,6 +18,7 @@
 #include "TonePlayer.h"
 #include "Config.h"
 #include "RadioMessageHandler.h"
+#include "esp_wifi.h"  // Include for power management configuration
 
 #ifndef FIRMWARE_VERSION
 #define FIRMWARE_VERSION "development"
@@ -144,6 +145,9 @@ void setup()
     // Initialize configuration
     config.begin();
 
+    // Disable power saving to troubleshoot WiFi issues
+    esp_wifi_set_ps(WIFI_PS_NONE);
+
     // Initialize WiFi
     if (wifiManager.begin())
     {
@@ -171,6 +175,11 @@ void loop()
 {
     // Add at the beginning of the loop function
     webServer.handleClient();
+    wifiManager.loop();
+
+
+    // Monitor heap memory
+    //Serial.printf("Free heap: %d bytes\n", ESP.getFreeHeap());
 
     // State machine
     switch (currentState)
