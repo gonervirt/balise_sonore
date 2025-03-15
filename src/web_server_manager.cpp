@@ -408,3 +408,8 @@ void WebServerManager::handleNotFound() {
     Serial.println("404 Not Found: " + server.uri());
     server.send(404, "text/plain", "Not found");
 }
+
+WebServerManager::~WebServerManager() {
+    server.stop();
+    Serial.println("Web server stopped successfully");
+}

@@ -96,6 +96,9 @@ public:
     void handleEsp32Action();
 
     String formatConfigItem(const char* label, const String& value);
+
+    /** Destructor to stop the web server */
+    ~WebServerManager();
 };
 
 #endif

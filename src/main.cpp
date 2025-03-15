@@ -81,8 +81,8 @@ enum AppState
 
 // Initialize management objects
 Config config;
-WiFiManager wifiManager(config);
-WebServerManager webServer(config);
+//WiFiManager wifiManager(config);
+WebServerManager *webServer;
 TonePlayer tonePlayer(RXD2, TXD2, BUSY_PIN, config);  // Updated constructor call
 //PushButtonManager pushButtonManager(BUTTON_PIN);
 LedManager ledManager(GREEN_LED_PIN, YELLOW_LED_PIN, RED_LED_PIN);
@@ -145,20 +145,30 @@ void setup()
     // Initialize configuration
     config.begin();
 
-    // Disable power saving to troubleshoot WiFi issues
-    esp_wifi_set_ps(WIFI_PS_NONE);
+    // Initialize WiFi
+    WiFi.mode(WIFI_AP);
+    bool success = WiFi.softAP(config.getWifiSSID(), config.getWifiPassword());
 
+    // Initialize WebServerManager
+    webServer = new WebServerManager(config);
+    webServer->begin();
+
+    // Disable power saving to troubleshoot WiFi issues
+    //esp_wifi_set_ps(WIFI_PS_NONE);
+
+    /*
     // Initialize WiFi
     if (wifiManager.begin())
     {
         Serial.println("WiFi ready");
         Serial.println("IP: " + wifiManager.getIP());
-        webServer.begin();
+        webServer->begin();
     }
     else
     {
         Serial.println("WiFi failed!");
     }
+    */
 
     tonePlayer.begin(); // Initialisation du lecteur de tonalité
     Serial.println("TonePlayer initialized");
@@ -174,9 +184,8 @@ void setup()
 void loop()
 {
     // Add at the beginning of the loop function
-    webServer.handleClient();
-    wifiManager.loop();
-
+    webServer->handleClient();
+    //wifiManager.loop();
 
     // Monitor heap memory
     //Serial.printf("Free heap: %d bytes\n", ESP.getFreeHeap());
@@ -204,7 +213,7 @@ void loop()
         }
 
         // recurring
-        // webServer.handleClient();
+        // webServer->handleClient();
         // Rate-limited tone player update
         if (millis() - lastToneUpdateTime >= TONE_UPDATE_INTERVAL)
         {
@@ -278,7 +287,7 @@ void loop()
         }
 
         // recurring
-        // webServer.handleClient();
+        // webServer->handleClient();
         // Rate-limited tone player update
         if (millis() - lastToneUpdateTime >= TONE_UPDATE_INTERVAL)
         {
@@ -314,7 +323,7 @@ void loop()
         }
 
         // recurring
-        // webServer.handleClient();
+        // webServer->handleClient();
         // Rate-limited tone player update
         if (millis() - lastToneUpdateTime >= TONE_UPDATE_INTERVAL)
         {
