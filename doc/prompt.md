@@ -8,3 +8,8 @@ in the main.cpp, function loop, couldyou implement a state machine that will mak
 In TonePlayer, the logic is chnaged and we will use the gpio 19 status connected to busy-pin from df player. No need to check is mp3player.isavailable, but use the gpio 19 state high as available, and low as busy reading. 
 
 Could you simplify RadioMessageHanlder class. onInterrup() should only store endlessly received interval in a circular buffer. The update() should first check the messageReceived variable, if a it has been already found, and not rlelaesed, end of function, if no messageReceived is false, only read (only) the circular buffer, in order to search a sync pattern, and then check if the whole message is found. If the message is found then the messageReceived variable has to be set to true. The resetActivation() should release the messageReceived, when main program will be ready to manage a new message received.
+
+could you learn and understand  the web_server_manager class. Could you create a new class web_server that will bahave exatly like web_server_manager, but the all the page should be in one single web page written in javascript, containing tabs to split the different page that were existing in web_server_manager. this static web page should be cachaed by client browser to limit resource for esp32. All exchnage (update of value in javascript pgae) and result sent to update config should be done through json message. The static java web page should be stored in littlefs.
+
+could you explain me what json message is sent to index.html to configure what is currently displayed with index.html page
+

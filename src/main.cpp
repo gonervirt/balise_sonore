@@ -18,6 +18,7 @@
 #include "TonePlayer.h"
 #include "Config.h"
 #include "RadioMessageHandler.h"
+#include "web_server.h"
 #include "esp_wifi.h"  // Include for power management configuration
 
 #ifndef FIRMWARE_VERSION
@@ -82,7 +83,9 @@ enum AppState
 // Initialize management objects
 Config config;
 //WiFiManager wifiManager(config);
-WebServerManager *webServer;
+//WebServerManager *webServer;
+WebServerSPA *webServer;
+
 TonePlayer tonePlayer(RXD2, TXD2, BUSY_PIN, config);  // Updated constructor call
 //PushButtonManager pushButtonManager(BUTTON_PIN);
 LedManager ledManager(GREEN_LED_PIN, YELLOW_LED_PIN, RED_LED_PIN);
@@ -150,7 +153,8 @@ void setup()
     bool success = WiFi.softAP(config.getWifiSSID(), config.getWifiPassword());
 
     // Initialize WebServerManager
-    webServer = new WebServerManager(config);
+    //webServer = new WebServerManager(config);
+    webServer = new WebServerSPA(config);
     webServer->begin();
 
     // Disable power saving to troubleshoot WiFi issues
