@@ -144,13 +144,14 @@ void setup()
 
     // Initialize configuration
     config.begin();
+
+    // Initialize WiFi
     WiFi.mode(WIFI_AP);
-    const char* ssid = config.getWifiSSID();
-    const char* password = config.getWifiPassword();
-    bool success = WiFi.softAP(ssid, password);
+    bool success = WiFi.softAP(config.getWifiSSID(), config.getWifiPassword());
 
     // Initialize WebServerManager
     webServer = new WebServerManager(config);
+    webServer->begin();
 
     // Disable power saving to troubleshoot WiFi issues
     //esp_wifi_set_ps(WIFI_PS_NONE);
