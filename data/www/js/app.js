@@ -3,11 +3,20 @@ let config = null;
 // Fetch and update configuration
 async function fetchConfig() {
     try {
-        const response = await fetch('/api/config');
+        const response = await fetch('/api/config', {
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         config = await response.json();
         updateAllTabs();
     } catch (error) {
         console.error('Error fetching config:', error);
+        // Maybe show an error to the user
+        alert('Failed to fetch configuration. Please refresh the page.');
     }
 }
 
@@ -96,6 +105,31 @@ function showTab(tabName) {
 }
 
 // API interactions
+async function handleApiCall(url, data) {
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || `HTTP error! status: ${response.status}`);
+        }
+        
+        await fetchConfig(); // Refresh data after successful call
+        return true;
+    } catch (error) {
+        console.error('API call failed:', error);
+        alert('Operation failed: ' + error.message);
+        return false;
+    }
+}
+
 async function handleWifiSubmit(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
@@ -107,39 +141,62 @@ async function handleWifiSubmit(event) {
         hidden: formData.get('hidden') === 'on'
     };
     
-    try {
-        const response = await fetch('/api/wifi', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        });
-        if (response.ok) {
-            await fetchConfig();
-        }
-    } catch (error) {
-        console.error('Error saving WiFi config:', error);
-    }
+    await handleApiCall('/api/wifi', data);
 }
 
 async function setActiveMessage() {
     const selectedMessage = document.querySelector('input[name="messageNum"]:checked');
     if (!selectedMessage) return;
     
-    const data = {
+    await handleApiCall('/api/message', {
         action: 'setActive',
         messageNum: parseInt(selectedMessage.value)
-    };
-    
-    try {
-        await fetch('/api/message', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        });
-        await fetchConfig();
-    } catch (error) {
-        console.error('Error setting active message:', error);
+    });
+}
+
+async function handleVolumeSubmit() {
+    const volume = document.getElementById('volume').value;
+    await handleApiCall('/api/volume', {
+        volume: parseInt(volume)
+    });
+}
+
+async function addNewMessage() {
+    await handleApiCall('/api/message', {
+        action: 'add'
+    });
+}
+
+async function removeSelectedMessage() {
+    const selectedMessage = document.querySelector('input[name="messageNum"]:checked');
+    if (!selectedMessage) {
+        alert('Please select a message to remove');
+        return;
     }
+    
+    await handleApiCall('/api/message', {
+        action: 'remove',
+        messageNum: parseInt(selectedMessage.value)
+    });
+}
+
+async function saveMessageText() {
+    const selectedMessage = document.querySelector('input[name="messageNum"]:checked');
+    if (!selectedMessage) {
+        alert('Please select a message to edit');
+        return;
+    }
+    
+    const newText = prompt('Enter new message text:', '');
+    if (newText === null || newText.trim() === '') {
+        return; // User cancelled or entered empty text
+    }
+
+    await handleApiCall('/api/message', {
+        action: 'update',
+        messageNum: parseInt(selectedMessage.value),
+        text: newText.trim()
+    });
 }
 
 // Initialize on page load
@@ -147,4 +204,20 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchConfig();
     // Refresh config every 5 seconds
     setInterval(fetchConfig, 5000);
+
+    // Add event listeners with null checks
+    const saveVolumeBtn = document.getElementById('saveVolume');
+    if (saveVolumeBtn) saveVolumeBtn.addEventListener('click', handleVolumeSubmit);
+
+    const addMessageBtn = document.getElementById('addMessage');
+    if (addMessageBtn) addMessageBtn.addEventListener('click', addNewMessage);
+
+    const removeMessageBtn = document.getElementById('removeMessage');
+    if (removeMessageBtn) removeMessageBtn.addEventListener('click', removeSelectedMessage);
+
+    const saveMessageBtn = document.getElementById('saveMessage');
+    if (saveMessageBtn) saveMessageBtn.addEventListener('click', saveMessageText);
+
+    // Add error logging if buttons are missing
+    if (!addMessageBtn) console.error('Add Message button not found');
 });

@@ -26,6 +26,14 @@ void WebServerSPA::setupStaticFiles() {
 }
 
 void WebServerSPA::setupApiRoutes() {
+    // Add CORS pre-flight handler
+    server.on("/api/*", HTTP_OPTIONS, [this]() {
+        server.sendHeader("Access-Control-Allow-Origin", "*");
+        server.sendHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+        server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+        server.send(204);
+    });
+
     server.on("/api/config", HTTP_GET, [this]() { handleGetConfig(); });
     server.on("/api/wifi", HTTP_POST, [this]() { handleSetWifiConfig(); });
     server.on("/api/message", HTTP_POST, [this]() { handleSetMessageConfig(); });
@@ -199,6 +207,8 @@ void WebServerSPA::handleClient() {
 void WebServerSPA::sendJsonResponse(const JsonDocument& doc) {
     String response;
     serializeJson(doc, response);
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.sendHeader("Content-Type", "application/json");
     server.send(200, "application/json", response);
 }
 
@@ -207,5 +217,7 @@ void WebServerSPA::sendJsonError(const char* message, int code) {
     doc["error"] = message;
     String response;
     serializeJson(doc, response);
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.sendHeader("Content-Type", "application/json");
     server.send(code, "application/json", response);
 }
