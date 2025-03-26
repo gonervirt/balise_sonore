@@ -72,3 +72,4 @@ Système de balise sonore basé sur ESP32, conçu pour diffuser des messages aud
 - Format : MP3
 - Stockage : Carte micro SD
 - Numérotation : 0001.mp3, 0002.mp3, etc.
+
