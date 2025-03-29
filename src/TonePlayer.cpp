@@ -1,5 +1,5 @@
 #include <SoftwareSerial.h>
-#include "TonePlayer.h"
+#include "TonePlayer.h"  // This will now look in the same directory
 #include "Arduino.h"
 #include "Config.h"
 
@@ -67,7 +67,7 @@ void TonePlayer::begin() {
     
 
     Serial.println(F("DFPlayer Mini online."));
-    myMP3player.enableDAC();
+    //myMP3player.enableDAC();
     adjustVolume(config.getVolume());  // Use volume from config
     Serial.println(F("Player initialized"));
 }
@@ -80,6 +80,7 @@ void TonePlayer::begin() {
  */
 void TonePlayer::playTone(int messageNumber) {
     Serial.println("playTone " + String(messageNumber));
+    enableDAC();
     myMP3player.play(messageNumber);
     playing = true;
     playStartTime = millis();
@@ -144,6 +145,18 @@ void TonePlayer::checkVolumeChange()
 void TonePlayer::adjustVolume(int volume) {
     lastConfigVolume = volume;  // Update the tracking variable
     myMP3player.volume(volume);
+}
+
+void TonePlayer::enableDAC() {
+    myMP3player.enableDAC();
+}
+
+void TonePlayer::disableDAC() {
+    myMP3player.disableDAC();
+}
+
+void TonePlayer::sleep() {
+    myMP3player.sleep();
 }
 
 

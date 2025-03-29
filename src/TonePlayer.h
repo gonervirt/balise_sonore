@@ -1,5 +1,5 @@
-#ifndef TONEPLAYER_H
-#define TONEPLAYER_H
+#ifndef TONE_PLAYER_H
+#define TONE_PLAYER_H
 
 #include "Arduino.h"
 #include <DFRobotDFPlayerMini.h>
@@ -82,6 +82,21 @@ public:
      */
     void addListener(TonePlayerListener* listener);
 
+    /**
+     * @brief Active le mode DAC
+     */
+    void enableDAC();
+
+    /**
+     * @brief Désactive le mode DAC
+     */
+    void disableDAC();
+
+    /**
+     * @brief Met le lecteur en mode veille
+     */
+    void sleep();
+
 private:
     DFRobotDFPlayerMini myMP3player;
     int rxd2;
@@ -105,4 +120,4 @@ private:
     void checkVolumeChange();
 };
 
-#endif // TONEPLAYER_H
+#endif // TONE_PLAYER_H

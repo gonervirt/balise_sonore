@@ -281,6 +281,7 @@ void loop()
         {
             Serial.println("State: PLAYING_TONE");
             ledManager.setYellow();
+            tonePlayer.enableDAC(); // Enable DAC for sound output
             tonePlayer.playTone(config.getNumeroMessage());
             stateInitialized = true;
             lastToneUpdateTime = millis();
@@ -319,6 +320,8 @@ void loop()
         {
             Serial.println("State: INHIBITED");
             ledManager.setGreenYellow();
+            tonePlayer.disableDAC(); // Disable DAC to save power
+            //tonePlayer.sleep(); // Sleep mode for the player
             stateInitialized = true;
         }
 

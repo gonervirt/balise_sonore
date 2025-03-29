@@ -18,7 +18,7 @@ Config::Config() {
         message_defined[i] = false;
         strcpy(messages[i], getDefaultMessage(i + 1));
     }
-    volume = 15;  // Default volume
+    volume = 30;  // Default volume
 }
 
 // Initialisation de la configuration
@@ -77,7 +77,7 @@ void Config::loadConfig() {
         i++;
     }
 
-    volume = doc["volume"] | 15;  // Load volume setting
+    volume = doc["volume"] | 30;  // Load volume setting
 }
 
 // Sauvegarde de la configuration dans la mémoire non volatile
