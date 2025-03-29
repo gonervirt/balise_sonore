@@ -77,7 +77,7 @@ void Config::loadConfig() {
         i++;
     }
 
-    volume = doc["volume"] | 15;  // Load volume setting
+    volume = doc["volume"] | 30;  // Load volume setting
 }
 
 // Sauvegarde de la configuration dans la mémoire non volatile

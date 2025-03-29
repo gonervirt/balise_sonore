@@ -48,6 +48,12 @@ public:
     void begin();
 
     /**
+     * @brief Initialize or reinitialize the player
+     * @return true if initialization succeeded
+     */
+    bool initPlayer();
+
+    /**
      * @brief Lance la lecture d'un message
      * @param messageNumber Numéro du fichier audio à lire (1-99)
      */
@@ -82,11 +88,27 @@ public:
      */
     void addListener(TonePlayerListener* listener);
 
+    /**
+     * @brief Active le mode DAC
+     */
+    void enableDAC();
+
+    /**
+     * @brief Désactive le mode DAC
+     */
+    void disableDAC();
+
+    /**
+     * @brief Met en pause la lecture
+     */
+    void pause();
+
 private:
     DFRobotDFPlayerMini myMP3player;
     int rxd2;
     int txd2;
     bool playing;
+    bool hardwardeInitialized;
     std::vector<TonePlayerListener*> listeners;
     SoftwareSerial* serial2player;
     unsigned long playStartTime;

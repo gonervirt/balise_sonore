@@ -37,39 +37,74 @@ void TonePlayer::begin() {
         Serial.println("Error: serial2player not initialized");
         return;
     }
-
-    // Configure busy pin as input with pull-up
-    pinMode(busyPin, INPUT_PULLUP);
-
     serial2player->begin(9600);
-    myMP3player.setTimeOut(1000);
-    myMP3player.begin(*serial2player, /*isACK = */true, /*doReset = */true);
-    Serial.println(F("Waiting DF player"));
-    //delay(1000);
 
+    // Only essential setup in begin()
+    pinMode(busyPin, INPUT_PULLUP);
+    
+    
+    if (!myMP3player.begin(*serial2player, /*isACK = */true, /*doReset = */true))
+    {
+        Serial.println(F("Unable to begin:"));
+        hardwardeInitialized = false;
+    }
+    else {
+        
+        Serial.println(F("Hardware initialized"));
+        hardwardeInitialized = true;
+    }
+    myMP3player.setTimeOut(500);
+}
+
+/**
+ * @brief Initialise le DFPlayer
+ * 
+ * Tente d'initialiser le DFPlayer, avec une tentative de réinitialisation en cas d'échec
+ */
+bool TonePlayer::initPlayer() {
+    Serial.println(F("Initializing DF player"));
+    
+
+    myMP3player.waitAvailable(10000); // Wait for player to be ready
+    if (!myMP3player.available()) {
+        Serial.println(F("DFPlayer not available"));
+        return false;
+    }
+    hardwardeInitialized = true;
+    /*
+    // Try initial initialization
     int count = 0;
     while (!checkPlayerState() && count < 10) {
         Serial.print(F("."));
         delay(1000);
         count++;
     }
-    myMP3player.reset();
-    delay(1000);
-    count = 0;
-    while (!checkPlayerState() && count < 10) {
-        Serial.print(F("."));
-        delay(1000);
-        count++;
-    }
-        
-    update(); // Clear any pending events
-    Serial.println(F(""));
-    
 
-    Serial.println(F("DFPlayer Mini online."));
-    myMP3player.enableDAC();
-    adjustVolume(config.getVolume());  // Use volume from config
+    // If first attempt fails, try reset
+    if (count >= 10) {
+        Serial.println(F("\nFirst init attempt failed, trying reset..."));
+        myMP3player.reset();
+        delay(1000);
+        
+        count = 0;
+        while (!checkPlayerState() && count < 10) {
+            Serial.print(F("."));
+            delay(1000);
+            count++;
+        }
+        
+        if (count >= 10) {
+            Serial.println(F("\nPlayer initialization failed"));
+            return false;
+        }
+    }
+    */
+
+    update(); // Clear any pending events
+    Serial.println(F("\nDFPlayer Mini online."));
+    adjustVolume(config.getVolume());
     Serial.println(F("Player initialized"));
+    return true;
 }
 
 /**
@@ -80,6 +115,7 @@ void TonePlayer::begin() {
  */
 void TonePlayer::playTone(int messageNumber) {
     Serial.println("playTone " + String(messageNumber));
+    myMP3player.enableDAC();
     myMP3player.play(messageNumber);
     playing = true;
     playStartTime = millis();
@@ -113,12 +149,19 @@ bool TonePlayer::checkPlayerState() {
  * 3. Timeout de sécurité
  */
 void TonePlayer::update() {   
+    if (!hardwardeInitialized)  {
+        Serial.println(F("Hardware not initialized, cannot update player"));
+        return;
+    }
     // Check volume changes at the start of update
     checkVolumeChange();
+
+
     
     // Check if playback finished
     if (checkPlayerState()) {
         playing = false;
+        disableDAC();
         return;
     }
 
@@ -127,6 +170,7 @@ void TonePlayer::update() {
         Serial.println("Tone timeout - forcing stop");
         myMP3player.stop();  // Force stop
         playing = false;
+        disableDAC();
         return;
     }
 }
@@ -146,6 +190,20 @@ void TonePlayer::adjustVolume(int volume) {
     myMP3player.volume(volume);
 }
 
+void TonePlayer::enableDAC() {
+    myMP3player.enableDAC();
+}
+
+void TonePlayer::disableDAC() {
+    myMP3player.disableDAC();
+}
+
+void TonePlayer::pause() {
+    if (playing) {
+        myMP3player.pause();
+        playing = false;
+    }
+}
 
 bool TonePlayer::isPlaying() const {
     return playing;

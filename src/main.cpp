@@ -29,8 +29,11 @@
 #if defined(BOARD_LOLIN_C3_MINI)
     #define RXD2 20
     #define TXD2 21
+//    #define RXD2 6
+//    #define TXD2 7
     #define BUSY_PIN 10
     #define BUTTON_PIN 6
+//    #define BUTTON_PIN 5
     #define GREEN_LED_PIN 2
     #define YELLOW_LED_PIN 1
     #define RED_LED_PIN 0
@@ -68,6 +71,8 @@
 // Add state machine enum
 enum AppState
 {
+    STARTUP_BLINK,
+    INIT_PLAYER,    // New state
     STARTING,
     READY_WAITING,
     PLAYING_TONE,
@@ -99,7 +104,7 @@ RadioMessageHandler inputHandler(RADIO_PIN);
 #endif
 
 // Add state machine variables
-AppState currentState = STARTING;
+AppState currentState = STARTUP_BLINK;
 unsigned long stateStartTime = 0;
 bool stateInitialized = false;
 
@@ -111,39 +116,28 @@ const unsigned long TONE_UPDATE_INTERVAL = 1000; // 1 second interval
 unsigned long lastWifiCheckTime = 0;
 const unsigned long WIFI_CHECK_INTERVAL = 5000; // Check every 5 seconds
 
-// Wait for Serial with timeout
-void waitForSerial(unsigned long timeout_ms = 10000)
-{
-    unsigned long start = millis();
-    while (!Serial && (millis() - start) < timeout_ms)
-    {
-        delay(100);
-    }
-}
+// Add variables for blinking state
+unsigned long blinkStartTime = 0;
+unsigned long lastBlinkTime = 0;
+const int STARTUP_BLINK_DURATION = 10000; // 10 seconds
+const int BLINK_INTERVAL = 500; // 500ms blink rate
+
 
 void setup()
 {
-    ledManager.begin(); // Initialisation du gestionnaire de LEDs
-    Serial.println("LedManager initialized");
-
-    // Blinking green and yellow LEDs for 10 seconds
-    unsigned long startWaitTime = millis();
-    while (millis() - startWaitTime < 10000) {
-        ledManager.setGreen();
-        delay(500);
-        ledManager.setYellow();
-        delay(500);
-    }
-    ledManager.setGreenYellow(); // Turn off LEDs after the wait period
-
     Serial.begin(115200);
-    waitForSerial(); // Wait up to 10 seconds for Serial
 
     Serial.println("\n\nStarting ESP32 Balise Sonore...");
     Serial.printf("Version %s Compile time: %s %s\n", FIRMWARE_VERSION, __DATE__, __TIME__);
 
+    ledManager.begin(); // Initialisation du gestionnaire de LEDs
+    Serial.println("LedManager initialized");
+
+
+
     // Initialize configuration
     config.begin();
+    Serial.println("Config initialized");
 
     // Initialize WiFi
     WiFi.mode(WIFI_AP);
@@ -152,33 +146,20 @@ void setup()
     // Initialize WebServerManager
     webServer = new WebServerManager(config);
     webServer->begin();
-
-    // Disable power saving to troubleshoot WiFi issues
-    //esp_wifi_set_ps(WIFI_PS_NONE);
-
-    /*
-    // Initialize WiFi
-    if (wifiManager.begin())
-    {
-        Serial.println("WiFi ready");
-        Serial.println("IP: " + wifiManager.getIP());
-        webServer->begin();
-    }
-    else
-    {
-        Serial.println("WiFi failed!");
-    }
-    */
+    Serial.println("WebServerManager initialized");
 
     tonePlayer.begin(); // Initialisation du lecteur de tonalité
     Serial.println("TonePlayer initialized");
-    ledManager.setGreen();
 
     inputHandler.begin(); // Initialisation du gestionnaire de messages radio
     Serial.println("InputHandler initialized");
 
     stateStartTime = millis(); // Initialize state timing
     stateInitialized = false;
+
+    // Initialize blinking state variables
+    currentState = STARTUP_BLINK;
+    blinkStartTime = millis();
 }
 
 void loop()
@@ -193,6 +174,75 @@ void loop()
     // State machine
     switch (currentState)
     {
+    case STARTUP_BLINK:
+        /* Entry actions:
+         * - Blink green and yellow LEDs alternately
+         *
+         * Recurring actions:
+         * - Blink LEDs every BLINK_INTERVAL ms
+         *
+         * Exit condition:
+         * - After 10 seconds (STARTUP_BLINK_DURATION)
+         * - Transitions to INIT_PLAYER
+         */
+        if (!stateInitialized)
+        {
+            Serial.println("State: STARTUP_BLINK");
+            stateInitialized = true;
+        }
+
+        if (millis() - blinkStartTime < STARTUP_BLINK_DURATION)
+        {
+            if (millis() - lastBlinkTime >= BLINK_INTERVAL)
+            {
+                ledManager.setGreen();
+                delay(BLINK_INTERVAL / 2);
+                ledManager.setYellow();
+                delay(BLINK_INTERVAL / 2);
+                lastBlinkTime = millis();
+            }
+        }
+        else
+        {
+            ledManager.setGreenYellow(); // Turn off LEDs after the wait period
+            currentState = INIT_PLAYER;  // Changed transition to new state
+            stateStartTime = millis();
+            stateInitialized = false;
+        }
+        break;
+
+    case INIT_PLAYER:
+        /* Entry actions:
+         * - Call initPlayer()
+         *
+         * Recurring actions:
+         * - None
+         *
+         * Exit condition:
+         * - Player initialization succeeds or fails
+         * - Transitions to STARTING on success
+         */
+        if (!stateInitialized)
+        {
+            Serial.println("State: INIT_PLAYER");
+            ledManager.setYellow();
+            stateInitialized = true;
+        }
+
+        if (tonePlayer.initPlayer())
+        {
+            currentState = STARTING;
+            stateStartTime = millis();
+            stateInitialized = false;
+        }
+        else
+        {
+            // If initialization fails, retry after a delay
+            delay(1000);
+            stateInitialized = false;
+        }
+        break;
+
     case STARTING:
         /* Entry actions:
          * - Play welcome message (tone 3)
