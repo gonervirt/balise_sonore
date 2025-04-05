@@ -42,7 +42,7 @@ void TonePlayer::begin() {
     // Only essential setup in begin()
     pinMode(busyPin, INPUT_PULLUP);
     
-    
+    myMP3player.setTimeOut(3000);
     if (!myMP3player.begin(*serial2player, /*isACK = */true, /*doReset = */true))
     {
         Serial.println(F("Unable to begin:"));
