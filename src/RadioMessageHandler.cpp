@@ -73,7 +73,9 @@ bool RadioMessageHandler::matchPattern(int startIndex) const {
     for (int i = 1; i < patternLength; i++) {
         int idx = (startIndex + i) % BUFFER_SIZE;
         if (!matchTiming(intervals[idx], PATTERN_TIMINGS[i])) {
-            Serial.println("Match failed at index: " + String(idx) + " with timing: " + String(intervals[idx]));
+            if (matchCount >= 7) {
+                Serial.printf("Found %d / %d patterns in buffer\n", matchCount, patternLength);
+            }
             return false;
         }
         matchCount++;
@@ -90,6 +92,7 @@ void RadioMessageHandler::update() {
         return;
     }
     
+    int patternCount = 0;
     // Look for valid patterns in the buffer
     for (int i = 0; i < BUFFER_SIZE; i++) {
         if (matchTiming(intervals[i], SYNC_TIME)) {  // Using matchTiming for SYNC detection
@@ -103,6 +106,8 @@ void RadioMessageHandler::update() {
             }
         }
     }
+
+    
 }
 
 /**
