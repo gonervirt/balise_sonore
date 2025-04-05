@@ -73,6 +73,7 @@ bool RadioMessageHandler::matchPattern(int startIndex) const {
     for (int i = 1; i < patternLength; i++) {
         int idx = (startIndex + i) % BUFFER_SIZE;
         if (!matchTiming(intervals[idx], PATTERN_TIMINGS[i])) {
+            Serial.println("Match failed at index: " + String(idx) + " with timing: " + String(intervals[idx]));
             return false;
         }
         matchCount++;

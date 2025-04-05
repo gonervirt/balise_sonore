@@ -137,7 +137,7 @@ void setup()
     ledManager.setGreenYellow(); // Turn off LEDs after the wait period
 
     Serial.begin(115200);
-    waitForSerial(); // Wait up to 10 seconds for Serial
+    //waitForSerial(); // Wait up to 10 seconds for Serial
 
     Serial.println("\n\nStarting ESP32 Balise Sonore...");
     Serial.printf("Version %s Compile time: %s %s\n", FIRMWARE_VERSION, __DATE__, __TIME__);
@@ -150,8 +150,8 @@ void setup()
     bool success = WiFi.softAP(config.getWifiSSID(), config.getWifiPassword());
 
     // Initialize WebServerManager
-    webServer = new WebServerManager(config);
-    webServer->begin();
+    //webServer = new WebServerManager(config);
+    //webServer->begin();
 
     // Disable power saving to troubleshoot WiFi issues
     //esp_wifi_set_ps(WIFI_PS_NONE);
@@ -184,7 +184,7 @@ void setup()
 void loop()
 {
     // Add at the beginning of the loop function
-    webServer->handleClient();
+    //webServer->handleClient();
     //wifiManager.loop();
 
     // Monitor heap memory
@@ -252,6 +252,8 @@ void loop()
             Serial.println("State: READY_WAITING");
             ledManager.setGreen();
             stateInitialized = true;
+            WiFi.disconnect();
+            WiFi.mode(WIFI_OFF);
         }
         // recurring
         inputHandler.update();
