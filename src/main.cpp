@@ -19,6 +19,7 @@
 #include "Config.h"
 #include "RadioMessageHandler.h"
 #include "esp_wifi.h"  // Include for power management configuration
+#include "bluetooth_manager.h"
 
 #ifndef FIRMWARE_VERSION
 #define FIRMWARE_VERSION "development"
@@ -87,6 +88,7 @@ TonePlayer tonePlayer(RXD2, TXD2, BUSY_PIN, config);  // Updated constructor cal
 //PushButtonManager pushButtonManager(BUTTON_PIN);
 LedManager ledManager(GREEN_LED_PIN, YELLOW_LED_PIN, RED_LED_PIN);
 //RadioMessageHandler radioHandler(RADIO_PIN);
+BluetoothManager bluetoothManager(config);
 
 #ifdef BOARD_LOLIN_C3_MINI
 PushButtonManager inputHandler(BUTTON_PIN);
@@ -149,9 +151,12 @@ void setup()
     config.begin();
 
     // Initialize WiFi
+    /*
     Serial.print("Connecting to WiFi ..");
     WiFi.mode(WIFI_AP);
     bool success = WiFi.softAP(config.getWifiSSID(), config.getWifiPassword(), 2);
+    */
+    bluetoothManager.begin();
    /*
     if (success)
     {
@@ -165,8 +170,8 @@ void setup()
     */
 
     //Initialize WebServerManager
-    webServer = new WebServerManager(config);
-    webServer->begin();
+    //webServer = new WebServerManager(config);
+    //webServer->begin();
 
     // Disable power saving to troubleshoot WiFi issues
     //esp_wifi_set_ps(WIFI_PS_NONE);
@@ -204,7 +209,7 @@ void setup()
 void loop()
 {
     // Add at the beginning of the loop function
-    webServer->handleClient();
+    //webServer->handleClient();
     //wifiManager.loop();
 
     // Monitor heap memory
