@@ -52,7 +52,17 @@ void TonePlayer::begin() {
         Serial.print(F("."));
         delay(1000);
         count++;
+    } 
+    
+    
+    if (!checkPlayerState()) {
+        Serial.println(F("DFPlayer Mini not found! disabling acknowledgment"));
+        myMP3player.begin(*serial2player, /*isACK = */false, /*doReset = */true);
+        return;
     }
+    
+    //myMP3player.begin(*serial2player, /*isACK = */false, /*doReset = */true);
+    /*
     myMP3player.reset();
     delay(1000);
     count = 0;
@@ -60,7 +70,7 @@ void TonePlayer::begin() {
         Serial.print(F("."));
         delay(1000);
         count++;
-    }
+    }*/
         
     update(); // Clear any pending events
     Serial.println(F(""));
@@ -126,7 +136,8 @@ void TonePlayer::update() {
     // Timeout check as fallback
     if (millis() - playStartTime >= PLAY_TIMEOUT) {
         Serial.println("Tone timeout - forcing stop");
-        myMP3player.stop();  // Force stop
+        //myMP3player.stop();  // Force stop
+        //Serial.println("Tone Update - forced stop OK");
         playing = false;
         return;
     }

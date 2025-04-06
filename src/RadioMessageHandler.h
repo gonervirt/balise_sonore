@@ -24,8 +24,8 @@ struct DecodedMessage {
 class RadioMessageHandler : public InputHandler {
 private:
     static constexpr float ERROR_RATE = 0.3f;
-    static constexpr float ERROR_RATE_MIN = 0.7f;
-    static constexpr float ERROR_RATE_MAX = 1.3f;
+    static constexpr float ERROR_RATE_MIN = 0.8f;
+    static constexpr float ERROR_RATE_MAX = 1.2f;
 
     // Base timings (microseconds)
     static constexpr int SYNC_TIME = 625;

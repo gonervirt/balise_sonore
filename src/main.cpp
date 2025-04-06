@@ -99,7 +99,7 @@ RadioMessageHandler inputHandler(RADIO_PIN);
 #endif
 
 // Add state machine variables
-AppState currentState = STARTING;
+AppState currentState = DESACTIVATED;
 unsigned long stateStartTime = 0;
 bool stateInitialized = false;
 
@@ -123,6 +123,11 @@ void waitForSerial(unsigned long timeout_ms = 10000)
 
 void setup()
 {
+    Serial.begin(115200);
+    //waitForSerial(); // Wait up to 10 seconds for Serial
+    Serial.println("\n\nStarting ESP32 Balise Sonore...");
+    Serial.printf("Version %s Compile time: %s %s\n", FIRMWARE_VERSION, __DATE__, __TIME__);
+
     ledManager.begin(); // Initialisation du gestionnaire de LEDs
     Serial.println("LedManager initialized");
 
@@ -136,22 +141,32 @@ void setup()
     }
     ledManager.setGreenYellow(); // Turn off LEDs after the wait period
 
-    Serial.begin(115200);
-    //waitForSerial(); // Wait up to 10 seconds for Serial
+    
 
-    Serial.println("\n\nStarting ESP32 Balise Sonore...");
-    Serial.printf("Version %s Compile time: %s %s\n", FIRMWARE_VERSION, __DATE__, __TIME__);
+   
 
     // Initialize configuration
     config.begin();
 
     // Initialize WiFi
+    Serial.print("Connecting to WiFi ..");
     WiFi.mode(WIFI_AP);
-    bool success = WiFi.softAP(config.getWifiSSID(), config.getWifiPassword());
+    bool success = WiFi.softAP(config.getWifiSSID(), config.getWifiPassword(), 2);
+   /*
+    if (success)
+    {
+        Serial.print("AP IP address: ");    
+        Serial.println(WiFi.localIP());
+    }
+    else
+    {
+        Serial.println("Failed!");
+    }
+    */
 
-    // Initialize WebServerManager
-    //webServer = new WebServerManager(config);
-    //webServer->begin();
+    //Initialize WebServerManager
+    webServer = new WebServerManager(config);
+    webServer->begin();
 
     // Disable power saving to troubleshoot WiFi issues
     //esp_wifi_set_ps(WIFI_PS_NONE);
@@ -174,17 +189,22 @@ void setup()
     Serial.println("TonePlayer initialized");
     ledManager.setGreen();
 
-    inputHandler.begin(); // Initialisation du gestionnaire de messages radio
-    Serial.println("InputHandler initialized");
+    // inputHandler.begin(); // Initialisation du gestionnaire de messages radio
+    // Serial.println("InputHandler initialized");
 
     stateStartTime = millis(); // Initialize state timing
     stateInitialized = false;
+
+    currentState = STARTING; // Set initial state to STARTING
+    //currentState = DESACTIVATED; // Set initial state to STARTING
+    //currentState = READY_WAITING; // Set initial state to STARTING
+
 }
 
 void loop()
 {
     // Add at the beginning of the loop function
-    //webServer->handleClient();
+    webServer->handleClient();
     //wifiManager.loop();
 
     // Monitor heap memory
@@ -252,8 +272,8 @@ void loop()
             Serial.println("State: READY_WAITING");
             ledManager.setGreen();
             stateInitialized = true;
-            WiFi.disconnect();
-            WiFi.mode(WIFI_OFF);
+            //WiFi.disconnect();
+            //WiFi.mode(WIFI_OFF);
         }
         // recurring
         inputHandler.update();

@@ -75,6 +75,12 @@ bool RadioMessageHandler::matchPattern(int startIndex) const {
         if (!matchTiming(intervals[idx], PATTERN_TIMINGS[i])) {
             if (matchCount >= 7) {
                 Serial.printf("Found %d / %d patterns in buffer\n", matchCount, patternLength);
+                Serial.print("Pattern data: ");
+                for (int d = 0; d < patternLength; d++) {
+                    int idx = (startIndex + d) % BUFFER_SIZE;
+                    Serial.printf("%.1f ", (float)intervals[idx]);
+                }
+                Serial.println();
             }
             return false;
         }
