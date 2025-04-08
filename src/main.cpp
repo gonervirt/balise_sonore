@@ -149,9 +149,13 @@ void setup()
     config.begin();
 
     // Initialize WiFi
+    /*
     Serial.print("Connecting to WiFi ..");
     WiFi.mode(WIFI_AP);
     bool success = WiFi.softAP(config.getWifiSSID(), config.getWifiPassword(), 2);
+    */
+
+
    /*
     if (success)
     {
@@ -165,8 +169,10 @@ void setup()
     */
 
     //Initialize WebServerManager
+    /*
     webServer = new WebServerManager(config);
     webServer->begin();
+    */
 
     // Disable power saving to troubleshoot WiFi issues
     //esp_wifi_set_ps(WIFI_PS_NONE);
@@ -189,8 +195,8 @@ void setup()
     Serial.println("TonePlayer initialized");
     ledManager.setGreen();
 
-    // inputHandler.begin(); // Initialisation du gestionnaire de messages radio
-    // Serial.println("InputHandler initialized");
+    inputHandler.begin(); // Initialisation du gestionnaire de messages radio
+    Serial.println("InputHandler initialized");
 
     stateStartTime = millis(); // Initialize state timing
     stateInitialized = false;
@@ -204,7 +210,7 @@ void setup()
 void loop()
 {
     // Add at the beginning of the loop function
-    webServer->handleClient();
+    //webServer->handleClient();
     //wifiManager.loop();
 
     // Monitor heap memory

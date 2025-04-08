@@ -18,7 +18,7 @@ Config::Config() {
         message_defined[i] = false;
         strcpy(messages[i], getDefaultMessage(i + 1));
     }
-    volume = 30;  // Default volume
+    volume = 15;  // Default volume
 }
 
 // Initialisation de la configuration
@@ -77,7 +77,13 @@ void Config::loadConfig() {
         i++;
     }
 
-    volume = doc["volume"] | 30;  // Load volume setting
+    #if defined(BOARD_LOLIN_C3_MINI)
+        volume = doc["volume"] | 15;  // Load volume setting
+    #elif defined(BOARD_ESP32_S3)
+        volume = doc["volume"] | 30;  // Load volume setting
+    #else  // Default to LOLIN C3 Mini for any invalid or undefined value
+        volume = doc["volume"] | 15;  // Load volume setting
+    #endif
 }
 
 // Sauvegarde de la configuration dans la mémoire non volatile

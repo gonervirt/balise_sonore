@@ -45,7 +45,7 @@ void TonePlayer::begin() {
     myMP3player.setTimeOut(1000);
     myMP3player.begin(*serial2player, /*isACK = */true, /*doReset = */true);
     Serial.println(F("Waiting DF player"));
-    //delay(1000);
+    delay(1000);
 
     int count = 0;
     while (!checkPlayerState() && count < 10) {
@@ -53,16 +53,6 @@ void TonePlayer::begin() {
         delay(1000);
         count++;
     } 
-    
-    
-    if (!checkPlayerState()) {
-        Serial.println(F("DFPlayer Mini not found! disabling acknowledgment"));
-        myMP3player.begin(*serial2player, /*isACK = */false, /*doReset = */true);
-        return;
-    }
-    
-    //myMP3player.begin(*serial2player, /*isACK = */false, /*doReset = */true);
-    /*
     myMP3player.reset();
     delay(1000);
     count = 0;
@@ -70,7 +60,21 @@ void TonePlayer::begin() {
         Serial.print(F("."));
         delay(1000);
         count++;
-    }*/
+    }
+    
+    /*
+    
+    if (!checkPlayerState()) {
+        Serial.println(F("DFPlayer Mini not found! disabling acknowledgment"));
+        myMP3player.begin(*serial2player, /*isACK = /false, /*doReset = /true);
+        return;
+    }
+
+    */
+    
+    //myMP3player.begin(*serial2player, /*isACK = */false, /*doReset = */true);
+    
+
         
     update(); // Clear any pending events
     Serial.println(F(""));
