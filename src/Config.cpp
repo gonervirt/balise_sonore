@@ -18,7 +18,7 @@ Config::Config() {
         message_defined[i] = false;
         strcpy(messages[i], getDefaultMessage(i + 1));
     }
-    volume = 15;  // Default volume
+    volume = 30;  // Default volume
 }
 
 // Initialisation de la configuration
