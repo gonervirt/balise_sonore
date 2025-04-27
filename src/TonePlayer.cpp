@@ -154,11 +154,11 @@ bool TonePlayer::isPlaying() const {
 }
 
 void TonePlayer::powerOn() const {
-    digitalWrite(powerPin, HIGH);  // Power on the player
+    digitalWrite(powerPin, LOW);  // Power on the player
     Serial.println("Power on");
 }
 
 void TonePlayer::powerOff() const {
-    digitalWrite(powerPin, LOW);  // Power off the player
+    digitalWrite(powerPin, HIGH);  // Power off the player
     Serial.println("Power off");
 }

@@ -58,7 +58,7 @@
     #define YELLOW_LED_PIN 42
     #define RED_LED_PIN 13
     #define RADIO_PIN 15
-    #define TONE_PLAYER_POWER_PIN 9
+    #define TONE_PLAYER_POWER_PIN 41
     #define DEFAULT_VOLUME 30
 #else  // Default to LOLIN C3 Mini for any invalid or undefined value
     #define RXD2 20
