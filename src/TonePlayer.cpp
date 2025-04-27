@@ -71,6 +71,7 @@ void TonePlayer::begin() {
     Serial.println(F("DFPlayer Mini online."));
     myMP3player.enableDAC();
     adjustVolume(config.getVolume());  // Use volume from config
+    Serial.printf("Volume set to %d \n", config.getVolume());
     Serial.println(F("Player initialized"));
 }
 
