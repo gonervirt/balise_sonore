@@ -34,7 +34,7 @@ public:
      * @param busyPin Broche GPIO pour surveiller l'état occupé
      * @param config Référence à la configuration
      */
-    TonePlayer(int rxd2, int txd2, int busyPin, Config& config);
+    TonePlayer(int rxd2, int txd2, int busyPin, int powerpin, Config& config);
     
     /**
      * @brief Destructeur - Libère les ressources
@@ -77,6 +77,18 @@ public:
     void reset();
 
     /**
+     * @brief Réinitialise le lecteur
+     */
+    void powerOn() const;
+
+    /**
+     * @brief Réinitialise le lecteur
+     */
+    void powerOff() const;
+    
+    
+
+    /**
      * @brief Ajoute un écouteur pour les événements de fin de lecture
      * @param listener Pointeur vers l'écouteur à ajouter
      */
@@ -87,6 +99,7 @@ private:
     int rxd2;
     int txd2;
     bool playing;
+    int powerPin;
     std::vector<TonePlayerListener*> listeners;
     SoftwareSerial* serial2player;
     unsigned long playStartTime;

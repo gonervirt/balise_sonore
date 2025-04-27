@@ -11,19 +11,25 @@
  */
 
 #include <Arduino.h>
-#include "wifi_manager.h"
-#include "web_server_manager.h"
+
 #include "PushButtonManager.h"
 #include "LedManager.h"
 #include "TonePlayer.h"
 #include "Config.h"
 #include "RadioMessageHandler.h"
-#include "esp_wifi.h"  // Include for power management configuration
+
 
 #ifndef FIRMWARE_VERSION
 #define FIRMWARE_VERSION "development"
 #endif
 
+#define DISABLE_WIFI 1 
+
+#ifndef DISABLE_WIFI
+#include "wifi_manager.h"
+#include "web_server_manager.h"
+#include "esp_wifi.h"  // Include for power management configuration
+#endif
 
 // Pin definitions based on board type
 #if defined(BOARD_LOLIN_C3_MINI)
@@ -34,6 +40,8 @@
     #define GREEN_LED_PIN 2
     #define YELLOW_LED_PIN 1
     #define RED_LED_PIN 0
+    #define TONE_PLAYER_POWER_PIN 9
+    #define DEFAULT_VOLUME 15
 #elif defined(BOARD_ESP32)
     #define RXD2 17
     #define TXD2 18
@@ -50,6 +58,8 @@
     #define YELLOW_LED_PIN 42
     #define RED_LED_PIN 13
     #define RADIO_PIN 15
+    #define TONE_PLAYER_POWER_PIN 9
+    #define DEFAULT_VOLUME 30
 #else  // Default to LOLIN C3 Mini for any invalid or undefined value
     #define RXD2 20
     #define TXD2 21
@@ -58,7 +68,7 @@
     #define GREEN_LED_PIN 2
     #define YELLOW_LED_PIN 1
     #define RED_LED_PIN 0
-    #define RADIO_PIN 9
+    #define TONE_PLAYER_POWER_PIN 9
 #endif
 
 // default wifi
@@ -80,10 +90,14 @@ enum AppState
 #define INHIBIT_DURATION 10000  // 10 seconds for inhibit state
 
 // Initialize management objects
-Config config;
+Config config(DEFAULT_VOLUME); // Pass default volume to Config constructor
+
+#ifndef DISABLE_WIFI
 //WiFiManager wifiManager(config);
 WebServerManager *webServer;
-TonePlayer tonePlayer(RXD2, TXD2, BUSY_PIN, config);  // Updated constructor call
+#endif
+
+TonePlayer tonePlayer(RXD2, TXD2, BUSY_PIN, TONE_PLAYER_POWER_PIN, config);  // Updated constructor call
 //PushButtonManager pushButtonManager(BUTTON_PIN);
 LedManager ledManager(GREEN_LED_PIN, YELLOW_LED_PIN, RED_LED_PIN);
 //RadioMessageHandler radioHandler(RADIO_PIN);
@@ -108,43 +122,48 @@ unsigned long lastToneUpdateTime = 0;
 const unsigned long TONE_UPDATE_INTERVAL = 1000; // 1 second interval
 
 // Add after other global variables
-unsigned long lastWifiCheckTime = 0;
-const unsigned long WIFI_CHECK_INTERVAL = 5000; // Check every 5 seconds
+//unsigned long lastWifiCheckTime = 0;
+//const unsigned long WIFI_CHECK_INTERVAL = 5000; // Check every 5 seconds
 
-// Wait for Serial with timeout
-void waitForSerial(unsigned long timeout_ms = 10000)
-{
-    unsigned long start = millis();
-    while (!Serial && (millis() - start) < timeout_ms)
-    {
-        delay(100);
-    }
-}
 
 void setup()
 {
+    Serial.begin(115200);
+    Serial.println("Starting ESP32 Balise Sonore...");
+    Serial.printf("Version %s Compile time: %s %s\n", FIRMWARE_VERSION, __DATE__, __TIME__);
+    Serial.println("Initializing components...");
+
+    //shutdown the tone player
+    tonePlayer.powerOff(); // Power off the player
+
     ledManager.begin(); // Initialisation du gestionnaire de LEDs
     Serial.println("LedManager initialized");
 
     // Blinking green and yellow LEDs for 10 seconds
     unsigned long startWaitTime = millis();
-    while (millis() - startWaitTime < 10000) {
+    while (millis() - startWaitTime < 5000) {
         ledManager.setGreen();
         delay(500);
         ledManager.setYellow();
         delay(500);
     }
+    //starting the tone player
+    tonePlayer.powerOn(); // Power on the player
+     // Blinking green and yellow LEDs for 10 seconds
+    startWaitTime = millis();
+     while (millis() - startWaitTime < 5000) {
+         ledManager.setGreen();
+         delay(500);
+         ledManager.off();
+         delay(500);
+     }
     ledManager.setGreenYellow(); // Turn off LEDs after the wait period
-
-    Serial.begin(115200);
-    waitForSerial(); // Wait up to 10 seconds for Serial
-
-    Serial.println("\n\nStarting ESP32 Balise Sonore...");
-    Serial.printf("Version %s Compile time: %s %s\n", FIRMWARE_VERSION, __DATE__, __TIME__);
+    
 
     // Initialize configuration
-    config.begin();
+    config.begin(); 
 
+    #ifndef DISABLE_WIFI
     // Initialize WiFi
     WiFi.mode(WIFI_AP);
     bool success = WiFi.softAP(config.getWifiSSID(), config.getWifiPassword());
@@ -152,23 +171,8 @@ void setup()
     // Initialize WebServerManager
     webServer = new WebServerManager(config);
     webServer->begin();
+    #endif
 
-    // Disable power saving to troubleshoot WiFi issues
-    //esp_wifi_set_ps(WIFI_PS_NONE);
-
-    /*
-    // Initialize WiFi
-    if (wifiManager.begin())
-    {
-        Serial.println("WiFi ready");
-        Serial.println("IP: " + wifiManager.getIP());
-        webServer->begin();
-    }
-    else
-    {
-        Serial.println("WiFi failed!");
-    }
-    */
 
     tonePlayer.begin(); // Initialisation du lecteur de tonalité
     Serial.println("TonePlayer initialized");
@@ -183,9 +187,11 @@ void setup()
 
 void loop()
 {
+    #ifndef DISABLE_WIFI
     // Add at the beginning of the loop function
     webServer->handleClient();
-    //wifiManager.loop();
+    #endif
+
 
     // Monitor heap memory
     //Serial.printf("Free heap: %d bytes\n", ESP.getFreeHeap());

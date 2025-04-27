@@ -6,7 +6,7 @@
 const char* Config::CONFIG_FILE = "/config.json";
 
 // Constructeur de la classe Config
-Config::Config() {
+Config::Config(int defaultVolume) : _defaultVolume(defaultVolume) {
     numeroMessage = 1;
     strcpy(wifi_ssid, "BALISESONORE");
     strcpy(wifi_password, "BaliseSonore_Betton_Mairie");
@@ -18,7 +18,7 @@ Config::Config() {
         message_defined[i] = false;
         strcpy(messages[i], getDefaultMessage(i + 1));
     }
-    volume = 15;  // Default volume
+    volume = _defaultVolume;  // Default volume
 }
 
 // Initialisation de la configuration
@@ -77,7 +77,7 @@ void Config::loadConfig() {
         i++;
     }
 
-    volume = doc["volume"] | 15;  // Load volume setting
+    volume = doc["volume"] | _defaultVolume;  // Load volume setting
 }
 
 // Sauvegarde de la configuration dans la mémoire non volatile

@@ -44,7 +44,7 @@ class Config {
 public:
     static const int MAX_MESSAGE_LENGTH = 64;
 
-    Config();
+    Config(int defaultVolume = 15);
     
     /** Initialize the configuration system */
     void begin();
@@ -129,6 +129,7 @@ private:
     bool message_defined[ABSOLUTE_MAX_MESSAGES];
     int message_count;
     uint8_t volume;  // Add volume parameter
+    int _defaultVolume;
     
     const char* getDefaultMessage(int number) const;
     static const char* CONFIG_FILE;  // Add this line

@@ -8,12 +8,14 @@
  * 
  * Configure les broches RX/TX et crée l'objet de communication série
  */
-TonePlayer::TonePlayer(int _rxd2, int _txd2, int _busyPin, Config& config) 
+TonePlayer::TonePlayer(int _rxd2, int _txd2, int _busyPin, int _powerpin, Config& config) 
     : playing(false), config(config), lastConfigVolume(config.getVolume()) {
     rxd2 = _rxd2;
     txd2 = _txd2;
     busyPin = _busyPin;
+    powerPin = _powerpin;
     serial2player = new SoftwareSerial(rxd2, txd2);
+    pinMode(powerPin, OUTPUT);
 }
 
 /**
@@ -149,4 +151,14 @@ void TonePlayer::adjustVolume(int volume) {
 
 bool TonePlayer::isPlaying() const {
     return playing;
+}
+
+void TonePlayer::powerOn() const {
+    digitalWrite(powerPin, HIGH);  // Power on the player
+    Serial.println("Power on");
+}
+
+void TonePlayer::powerOff() const {
+    digitalWrite(powerPin, LOW);  // Power off the player
+    Serial.println("Power off");
 }
