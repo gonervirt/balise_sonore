@@ -79,7 +79,9 @@
 enum AppState
 {
     STARTING,
+    WELCOME,
     READY_WAITING,
+    START_TONE_PLAYER,
     PLAYING_TONE,
     INHIBITED,
     DESACTIVATED
@@ -139,27 +141,6 @@ void setup()
     ledManager.begin(); // Initialisation du gestionnaire de LEDs
     Serial.println("LedManager initialized");
 
-    // Blinking green and yellow LEDs for 10 seconds
-    unsigned long startWaitTime = millis();
-    while (millis() - startWaitTime < 5000) {
-        ledManager.setGreen();
-        delay(500);
-        ledManager.setYellow();
-        delay(500);
-    }
-    //starting the tone player
-    tonePlayer.powerOn(); // Power on the player
-     // Blinking green and yellow LEDs for 10 seconds
-    startWaitTime = millis();
-     while (millis() - startWaitTime < 5000) {
-         ledManager.setGreen();
-         delay(500);
-         ledManager.off();
-         delay(500);
-     }
-    ledManager.setGreenYellow(); // Turn off LEDs after the wait period
-    
-
     // Initialize configuration
     config.begin(); 
 
@@ -174,8 +155,6 @@ void setup()
     #endif
 
 
-    tonePlayer.begin(); // Initialisation du lecteur de tonalité
-    Serial.println("TonePlayer initialized");
     ledManager.setGreen();
 
     inputHandler.begin(); // Initialisation du gestionnaire de messages radio
@@ -199,7 +178,32 @@ void loop()
     // State machine
     switch (currentState)
     {
-    case STARTING:
+        case STARTING:
+        /* Entry actions:
+         * - Play welcome message (tone 3)
+         *
+         * Recurring actions:
+         * - None
+         *
+         * Exit condition:
+         * - After 30 seconds (STARTING_DURATION)
+         * - Transitions to READY_WAITING
+         */
+      
+            Serial.println("State: STARTING");
+            //starting the tone player
+            tonePlayer.powerOn(); // Power on the player
+            delay(2000); // Wait for the player to power on
+            tonePlayer.begin(); // Initialisation du lecteur de tonalité
+            tonePlayer.startup(); // Initialisation du lecteur de tonalité
+
+            Serial.println("TonePlayer initialized completed");
+            currentState = WELCOME;
+            stateStartTime = millis();
+        
+    break;
+
+    case WELCOME:
         /* Entry actions:
          * - Play welcome message (tone 3)
          *
@@ -212,7 +216,7 @@ void loop()
          */
         if (!stateInitialized)
         {
-            Serial.println("State: STARTING");
+            Serial.println("State: WELCOME");
             tonePlayer.playTone(4);
             ledManager.setYellow();
             stateInitialized = true;
@@ -228,13 +232,13 @@ void loop()
 
             if (!tonePlayer.isPlaying())
             {
-                currentState = READY_WAITING;
+                currentState = INHIBITED;
                 stateStartTime = millis();
                 stateInitialized = false;
 
                 if (millis() - stateStartTime >= STARTING_DURATION)
                 {
-                    currentState = READY_WAITING;
+                    currentState = INHIBITED;
                     stateStartTime = millis();
                     stateInitialized = false;
                 }
@@ -264,11 +268,59 @@ void loop()
 
         if (inputHandler.isActivated())
         {
-            currentState = PLAYING_TONE;
+            currentState = START_TONE_PLAYER;
             stateStartTime = millis();
             stateInitialized = false;
 
         }
+        break;
+
+    case START_TONE_PLAYER:
+        /* Entry actions:
+         * - Set LED to yellow
+         * - Start playing configured message
+         *
+         * Recurring actions:
+         * - Check if tone has finished playing (rate limited to once per second)
+         *
+         * Exit condition:
+         * - Tone finishes playing
+         * - Transitions to INHIBITED
+         */
+        if (!stateInitialized)
+        {   
+            unsigned long startWaitTime = millis();
+            Serial.println("State: START_TONE_PLAYER");
+                //starting the tone player
+                tonePlayer.powerOn(); // Power on the player
+                delay(2000); // Wait for the player to power on
+                tonePlayer.startup(); // Initialisation du lecteur de tonalité
+                /*
+                // Blinking green and yellow LEDs for 10 seconds
+                while (((millis() - startWaitTime) < 1000) || (!tonePlayer.busy())) {
+                    ledManager.setGreen();
+                    delay(500);
+                    ledManager.off();
+                    delay(500);
+                    Serial.println(tonePlayer.busy());
+                    Serial.println(millis() - startWaitTime);
+                */
+        
+                ledManager.setGreenYellow(); // Turn off LEDs after the wait period
+               // tonePlayer.begin(); // Initialisation du lecteur de tonalité
+                Serial.println("TonePlayer initialized");
+            stateInitialized = true;
+            stateStartTime = millis();
+        }
+
+        if (tonePlayer.busy())
+        {
+            Serial.print("Tone player started "); Serial.println (millis() - stateStartTime);
+            currentState = PLAYING_TONE;
+            stateStartTime = millis();
+            stateInitialized = false;
+        }   
+
         break;
 
     case PLAYING_TONE:
@@ -287,6 +339,7 @@ void loop()
         {
             Serial.println("State: PLAYING_TONE");
             ledManager.setYellow();
+            
             tonePlayer.playTone(config.getNumeroMessage());
             stateInitialized = true;
             lastToneUpdateTime = millis();
@@ -325,6 +378,8 @@ void loop()
         {
             Serial.println("State: INHIBITED");
             ledManager.setGreenYellow();
+            //shutdown the tone player
+            tonePlayer.powerOff(); // Power off the player
             stateInitialized = true;
         }
 
@@ -333,7 +388,7 @@ void loop()
         // Rate-limited tone player update
         if (millis() - lastToneUpdateTime >= TONE_UPDATE_INTERVAL)
         {
-            tonePlayer.update();
+            //tonePlayer.update();
             lastToneUpdateTime = millis();
 
             if (millis() - stateStartTime >= INHIBIT_DURATION)

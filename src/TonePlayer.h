@@ -47,6 +47,14 @@ public:
      */
     void begin();
 
+     /**
+     * @brief Initialise le lecteur MP3
+     * Configure la communication série et initialise le DFPlayer
+     */
+    void startup();
+    void startup1();
+
+
     /**
      * @brief Lance la lecture d'un message
      * @param messageNumber Numéro du fichier audio à lire (1-99)
@@ -85,6 +93,16 @@ public:
      * @brief Réinitialise le lecteur
      */
     void powerOff() const;
+
+    /**
+     * @brief Vérifie l'état du lecteur
+     * @return true si la lecture est terminée, false sinon
+     */
+    bool busy();
+
+    void readMessage();
+
+    void printDetail(uint8_t type, int value);
     
     
 
@@ -95,12 +113,12 @@ public:
     void addListener(TonePlayerListener* listener);
 
 private:
-    DFRobotDFPlayerMini myMP3player;
+    DFRobotDFPlayerMini* myMP3player;
     int rxd2;
     int txd2;
     bool playing;
     int powerPin;
-    std::vector<TonePlayerListener*> listeners;
+    
     SoftwareSerial* serial2player;
     unsigned long playStartTime;
     static const unsigned long PLAY_TIMEOUT = 10000; // 30 second timeout
@@ -108,11 +126,7 @@ private:
     int lastConfigVolume;  // Add this to track config volume changes
     int busyPin;  // GPIO pin for busy state monitoring
     
-    /**
-     * @brief Vérifie l'état du lecteur
-     * @return true si la lecture est terminée, false sinon
-     */
-    bool checkPlayerState();
+
     
     /** Check and update volume if changed in config */
     void checkVolumeChange();
