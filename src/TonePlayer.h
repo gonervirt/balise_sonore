@@ -102,6 +102,10 @@ public:
 
     void readMessage();
 
+    void enableDAC();
+    int readVolume();
+    
+
     void printDetail(uint8_t type, int value);
     
     
@@ -113,7 +117,7 @@ public:
     void addListener(TonePlayerListener* listener);
 
 private:
-    DFRobotDFPlayerMini* myMP3player;
+    DFRobotDFPlayerMini myMP3player;
     int rxd2;
     int txd2;
     bool playing;

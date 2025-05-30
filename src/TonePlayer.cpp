@@ -16,6 +16,8 @@ TonePlayer::TonePlayer(int _rxd2, int _txd2, int _busyPin, int _powerpin, Config
     powerPin = _powerpin;
     serial2player = new SoftwareSerial(rxd2, txd2);
     pinMode(powerPin, OUTPUT);
+    // Configure busy pin as input with pull-up
+    pinMode(busyPin, INPUT_PULLUP);
 }
 
 /**
@@ -39,46 +41,58 @@ void TonePlayer::begin() {
         Serial.println("Error: serial2player not initialized");
         return;
     }
-
-    // Configure busy pin as input with pull-up
-    pinMode(busyPin, INPUT_PULLUP);
-
     serial2player->begin(9600);
-
-    
-    Serial.println(F("DF player configured."));
-
-    //delay(1000);
-    }
-
-void TonePlayer::startup() {
-    Serial.println(F("Startup DFPlayer Mini..."));
-    myMP3player = new DFRobotDFPlayerMini();
-    myMP3player->begin(*serial2player, /*isACK = */true, /*doReset = */true);
-    delay(20000);
-    myMP3player->reset();
-    delay(1000);
+    myMP3player.setTimeOut(1000);
+    myMP3player.begin(*serial2player, /*isACK = */true, /*doReset = */true);
+    Serial.println(F("Waiting DF player"));
+    /*
+    delay(5000);
+    myMP3player.reset();
+    delay(10000);
 
     readMessage();
-    int vol = myMP3player->readVolume();
+    */
+    Serial.println(F("DF player begin completed."));
+    }
+
+void TonePlayer::enableDAC() {  
+    myMP3player.enableDAC();  // Enable DAC output
+    Serial.println(F("DAC enabled"));
+}
+
+int TonePlayer::readVolume() {  
+    return myMP3player.readVolume  ();  // read current volume
+}
+
+void TonePlayer::reset() {  
+    return myMP3player.reset  ();  // reset
+}
+
+void TonePlayer::startup() {
+    //delay(3000);
+    //myMP3player.reset();
+    //delay(10000);
+
+    readMessage();
+    int vol = myMP3player.readVolume();
     Serial.printf("Volume read from DFPlayer: %d\n", vol);
     readMessage();
     //Serial.printf("waitAvailable");
-    //myMP3player->waitAvailable(1000); // Wait for DFPlayer to be ready
-    myMP3player->setTimeOut(500); //Set serial communictaion time out 500ms
-    //myMP3player->enableDAC();
+    //myMP3player.waitAvailable(1000); // Wait for DFPlayer to be ready
+    myMP3player.setTimeOut(500); //Set serial communictaion time out 500ms
+    //myMP3player.enableDAC();
     adjustVolume(config.getVolume());  // Use volume from config
     Serial.printf("Volume set to %d \n", config.getVolume());
-    vol = myMP3player->readVolume();
+    vol = myMP3player.readVolume();
     Serial.printf("Volume read from DFPlayer: %d\n", vol);
     Serial.println(F("Player initialized"));
-    //myMP3player->play(4);
+    //myMP3player.play(4);
 
 }
 
 void TonePlayer::readMessage() {
-    if (myMP3player->available()) {
-        printDetail(myMP3player->readType(), myMP3player->read()); //Print the detail message from DFPlayer to handle different errors and states.
+    if (myMP3player.available()) {
+        printDetail(myMP3player.readType(), myMP3player.read()); //Print the detail message from DFPlayer to handle different errors and states.
     }
     else {
         Serial.println(F("No message available from DFPlayer"));
@@ -95,7 +109,7 @@ void TonePlayer::startup1() {
         delay(1000);
         count++;
     }
-    myMP3player->reset();
+    myMP3player.reset();
     delay(1000);
     count = 0;
     while (!busy() && count < 10) {
@@ -109,7 +123,7 @@ void TonePlayer::startup1() {
     
 
     Serial.println(F("DFPlayer Mini online."));
-    myMP3player->enableDAC();
+    myMP3player.enableDAC();
     adjustVolume(config.getVolume());  // Use volume from config
     Serial.printf("Volume set to %d \n", config.getVolume());
     Serial.println(F("Player initialized"));
@@ -123,9 +137,8 @@ void TonePlayer::startup1() {
  */
 void TonePlayer::playTone(int messageNumber) {
     Serial.println("playTone " + String(messageNumber));
-    myMP3player->play(messageNumber);
-    playing = true;
-    playStartTime = millis();
+    myMP3player.play(messageNumber);
+    delay(500);
 }
 
 /**
@@ -136,14 +149,12 @@ void TonePlayer::playTone(int messageNumber) {
  */
 bool TonePlayer::busy() {
     // HIGH means player is ready/idle, LOW means it's busy playing
-    
-    bool isReady = digitalRead(busyPin) == HIGH;
-    //Serial.println("Checking player state " + String(isReady));
-    
-    if (isReady) {
+    if (digitalRead(busyPin) == LOW) {
+      // Player is busy
         return true;
     }
-    
+    // player is idle
+    Serial.println("Player is idle"); 
     return false;
 }
 
@@ -168,7 +179,7 @@ void TonePlayer::update() {
     // Timeout check as fallback
     if (millis() - playStartTime >= PLAY_TIMEOUT) {
         Serial.println("Tone timeout - forcing stop");
-        myMP3player->stop();  // Force stop
+        myMP3player.stop();  // Force stop
         playing = false;
         return;
     }
@@ -186,7 +197,7 @@ void TonePlayer::checkVolumeChange()
 
 void TonePlayer::adjustVolume(int volume) {
     lastConfigVolume = volume;  // Update the tracking variable
-    myMP3player->volume(volume);
+    myMP3player.volume(volume);
 }
 
 
@@ -200,9 +211,8 @@ void TonePlayer::powerOn() const {
 }
 
 void TonePlayer::powerOff() const {
-    digitalWrite(powerPin, HIGH);  // Power off the player
+    //digitalWrite(powerPin, HIGH);  // Power off the player
     Serial.println("DF mini Power off");
-    delete (myMP3player);  // Clean up DFPlayer instance
 }
 
 void TonePlayer::printDetail(uint8_t type, int value){
