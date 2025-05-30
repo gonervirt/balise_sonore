@@ -44,6 +44,7 @@ void TonePlayer::begin() {
     serial2player->begin(9600);
     myMP3player.setTimeOut(1000);
     myMP3player.begin(*serial2player, /*isACK = */true, /*doReset = */true);
+    myMP3player.setTimeOut(500);
     Serial.println(F("Waiting DF player"));
     /*
     delay(5000);
@@ -98,6 +99,11 @@ void TonePlayer::readMessage() {
         Serial.println(F("No message available from DFPlayer"));
     }
 }
+
+bool TonePlayer::available() {
+    return myMP3player.available();
+} 
+
 
 
 

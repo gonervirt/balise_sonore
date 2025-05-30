@@ -26,6 +26,7 @@
 
 #define DISABLE_WIFI 1 
 
+
 #ifndef DISABLE_WIFI
 #include "wifi_manager.h"
 #include "web_server_manager.h"
@@ -126,6 +127,8 @@ bool stateInitialized = false;
 unsigned long lastToneUpdateTime = 0;
 const unsigned long TONE_UPDATE_INTERVAL = 1000; // 1 second interval
 
+AppState targetState; // Initialize next state
+
 // Add state machine variables after other defines
 #define STARTING_DURATION 10000 // 30 seconds for starting state
 #define MAX_PLAY_DURATION 20000 // 30 seconds for starting state
@@ -211,8 +214,9 @@ void loop()
         case STARTING:
             Serial.println("State: STARTING");
             currentState = START_TONE_PLAYER_1; // Transition to START_TONE_PLAYER state
-            delay(15000); // Wait for 1.5 seconds before transitioning
+            delay(4000); // Wait for 4 seconds before transitioning
             stateInitialized = false; // Reset state initialization flag
+            targetState = WELCOME;
             break;
 
         case START_TONE_PLAYER_1:
@@ -238,7 +242,7 @@ void loop()
         }
         
         // wait for tone player not to be busy
-        //currentState = waitEvent(currentState, [&]() { return ! tonePlayer.busy(); }, START_TONE_PLAYER_2);
+        currentState = waitEvent(currentState, [&]() { return  tonePlayer.available(); }, START_TONE_PLAYER_2);
         // wait for tone player not to be busy
         currentState = waitEvent(currentState, [&]() { return timer.checkTimer(); }, START_TONE_PLAYER_2);
 
@@ -263,12 +267,12 @@ void loop()
             tonePlayer.readMessage();
             tonePlayer.adjustVolume(config.getVolume());  // Use volume from config
             Serial.printf("Volume set to %d \n", config.getVolume());
-            //Serial.printf("Volume read from DFPlayer: %d\n", tonePlayer.readVolume());
-            //tonePlayer.enableDAC();
+            Serial.printf("Volume read from DFPlayer: %d\n", tonePlayer.readVolume());
+            tonePlayer.enableDAC();
             Serial.println(F("Player initialized"));
         }
 
-        currentState = WELCOME;
+        currentState = targetState;
         stateInitialized = false;
 
         break;
@@ -324,7 +328,12 @@ void loop()
         // manage events
         currentState = waitEvent(currentState, [&]() { return inputHandler.isActivated(); }, PLAYING_TONE);
 
-        if (currentState != READY_WAITING) {stateInitialized = false;}
+        if (currentState != READY_WAITING) {
+                // target new playing tone tone state but have to restart the tone player
+                targetState = PLAYING_TONE;
+                // enter sub state machine to restart the tone player
+                currentState = START_TONE_PLAYER_1;
+                stateInitialized = false;}
         break;
 
     case START_TONE_PLAYER:

@@ -104,6 +104,8 @@ public:
 
     void enableDAC();
     int readVolume();
+
+    bool available();
     
 
     void printDetail(uint8_t type, int value);
