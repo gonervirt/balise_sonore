@@ -110,9 +110,8 @@ enum AppState
     STARTING,
     TONE_PLAYER_RESTART,
     TONE_PLAYER_CONFIGURE,
-    WELCOME,
+    WELCOME_MESSAGE,
     READY_WAITING,
-    START_TONE_PLAYER,
     PLAYING_TONE,
     INHIBITED,
     DESACTIVATED
@@ -216,12 +215,12 @@ void loop()
             currentState = TONE_PLAYER_RESTART; // Transition to START_TONE_PLAYER state
             delay(4000); // Wait for 4 seconds before transitioning
             stateInitialized = false; // Reset state initialization flag
-            targetState = WELCOME;
+            targetState = WELCOME_MESSAGE;
             break;
 
         case TONE_PLAYER_RESTART:
         /* Entry actions:
-         * - Play welcome message (tone 3)
+         * - Play WELCOME_MESSAGE message (tone 3)
          *
          * Recurring actions:
          * - None
@@ -233,6 +232,9 @@ void loop()
         if (!stateInitialized)
         {
             Serial.println("State: TONE_PLAYER_RESTART");
+            tonePlayer.powerOn(); // Reset the tone player
+            delay(2000); // Wait for the player to power on
+            tonePlayer.readMessage(); // Reset the tone player
             Serial.println("reset...");
             tonePlayer.reset(); // Reset the tone player
             tonePlayer.readMessage(); // Reset the tone player
@@ -256,7 +258,7 @@ void loop()
             tonePlayer.startup(); // Initialisation du lecteur de tonalité
 
             Serial.println("TonePlayer initialized completed");
-            currentState = WELCOME;
+            currentState = WELCOME_MESSAGE;
             */
         
     break;
@@ -279,9 +281,9 @@ void loop()
 
         break;
 
-    case WELCOME:
+    case WELCOME_MESSAGE:
         /* Entry actions:
-         * - Play welcome message (tone 3)
+         * - Play WELCOME_MESSAGE_MESSAGE message (tone 3)
          *
          * Recurring actions:
          * - None
@@ -292,7 +294,7 @@ void loop()
          */
         if (!stateInitialized)
         {
-            Serial.println("State: WELCOME");
+            Serial.println("State: WELCOME_MESSAGE");
             tonePlayer.playTone(4);
             ledManager.setYellow();
             stateInitialized = true;
@@ -301,11 +303,11 @@ void loop()
 
         // manage events
         // wait for tone player to finish
-        currentState = waitEvent(currentState, [&]() { return ! tonePlayer.busy(); }, READY_WAITING);
+        currentState = waitEvent(currentState, [&]() { return ! tonePlayer.busy(); }, INHIBITED);
         // watch dog timer
-        currentState = waitEvent(currentState, [&]() { return timer.checkTimer(); }, READY_WAITING);
+        currentState = waitEvent(currentState, [&]() { return timer.checkTimer(); }, INHIBITED);
         
-        if (currentState != WELCOME) {stateInitialized = false;}
+        if (currentState != WELCOME_MESSAGE) {stateInitialized = false;}
         break;
 
     case READY_WAITING:
@@ -323,6 +325,8 @@ void loop()
         {
             Serial.println("State: READY_WAITING");
             ledManager.setGreen();
+            tonePlayer.readMessage(); // check if message still available
+            targetState = PLAYING_TONE;
             stateInitialized = true;
         }
         // recurring
@@ -332,41 +336,12 @@ void loop()
 
         if (currentState != READY_WAITING) {
                 // target new playing tone tone state but have to restart the tone player
-                targetState = PLAYING_TONE;
+                
                 // enter sub state machine to restart the tone player
                 currentState = TONE_PLAYER_RESTART;
                 stateInitialized = false;}
         break;
 
-    case START_TONE_PLAYER:
-        /* Entry actions:
-         * - Set LED to yellow
-         * - Start playing configured message
-         *
-         * Recurring actions:
-         * - Check if tone has finished playing (rate limited to once per second)
-         *
-         * Exit condition:
-         * - Tone finishes playing
-         * - Transitions to INHIBITED
-         */
-        if (!stateInitialized)
-        {   
-            Serial.println("State: START_TONE_PLAYER");
-            
-            ledManager.setGreenYellow(); // Turn off LEDs after the wait period
-            // tonePlayer.begin(); // Initialisation du lecteur de tonalité
-            Serial.println("TonePlayer initialized");
-            stateInitialized = true;
-        }
-
-        // wait for tone player not to be busy
-        currentState = waitEvent(currentState, [&]() { return ! tonePlayer.busy(); }, PLAYING_TONE);
-        // wait for tone player not to be busy
-        currentState = waitEvent(currentState, [&]() { return  tonePlayer.busy(); }, PLAYING_TONE);
-
-        if (currentState != START_TONE_PLAYER) {stateInitialized = false;}
-        break;
 
     case PLAYING_TONE:
         /* Entry actions:
@@ -415,10 +390,15 @@ void loop()
         {
             Serial.println("State: INHIBITED");
             ledManager.setGreenYellow();
-            //shutdown the tone player
-            //tonePlayer.powerOff(); // Power off the player
             stateInitialized = true;
             timer.armTimer(INHIBIT_DURATION); // Set timer for 10 seconds
+            //shutdown the tone player
+            tonePlayer.readMessage(); // Read the message from the player
+            tonePlayer.powerOff(); // Power off the player
+            delay(1000); // Wait for 1 second to ensure the player is off
+            tonePlayer.powerOn(); // Reset the tone player
+            delay(2000); // Wait for the player to power on
+            tonePlayer.powerOff(); // Reset the tone player
         }
         
         // wait timer

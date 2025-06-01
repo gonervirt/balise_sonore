@@ -218,7 +218,7 @@ void TonePlayer::powerOn() const {
 }
 
 void TonePlayer::powerOff() const {
-    //digitalWrite(powerPin, HIGH);  // Power off the player
+    digitalWrite(powerPin, HIGH);  // Power off the player
     Serial.println("DF mini Power off");
 }
 
