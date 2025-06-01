@@ -45,7 +45,7 @@ void TonePlayer::begin() {
     myMP3player.setTimeOut(1000);
     myMP3player.begin(*serial2player, /*isACK = */true, /*doReset = */true);
     readMessage();  // Read initial message from DFPlayer
-    myMP3player.setTimeOut(500);
+    //myMP3player.setTimeOut(500);
     //Serial.println(F("Waiting DF player"));
     /*
     delay(5000);
@@ -103,6 +103,17 @@ void TonePlayer::readMessage() {
 
 bool TonePlayer::available() {
     return myMP3player.available();
+} 
+
+bool TonePlayer::availableExceptTimeOut() {
+    if (myMP3player.available())
+      {
+        uint8_t type = myMP3player.readType();
+        if (type != TimeOut) {
+            return true;  // Only return true if it's not a timeout message
+        }
+    } 
+    return false;  // No available message or it's a timeout message
 } 
 
 

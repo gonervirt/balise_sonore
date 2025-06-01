@@ -109,6 +109,7 @@ enum AppState
 {
     STARTING,
     TONE_PLAYER_RESTART,
+    TONE_PLAYER_START_ERROR,
     TONE_PLAYER_CONFIGURE,
     WELCOME_MESSAGE,
     READY_WAITING,
@@ -175,7 +176,7 @@ void setup()
     Serial.println("InputHandler initialized");
     // Switch on the tone player  
     tonePlayer.powerOn(); // Power on the player
-    delay(2000); // Wait for the player to power on
+    //delay(2000); // Wait for the player to power on
     tonePlayer.begin(); // Initialisation du lecteur de tonalité
     Serial.println("TonePlayer powered on");
 
@@ -233,35 +234,43 @@ void loop()
         {
             Serial.println("State: TONE_PLAYER_RESTART");
             tonePlayer.powerOn(); // Reset the tone player
-            delay(2000); // Wait for the player to power on
+            delay(1000); // Wait for the player to power on
             tonePlayer.readMessage(); // Reset the tone player
             Serial.println("reset...");
-            tonePlayer.reset(); // Reset the tone player
+          
+           tonePlayer.reset(); // Reset the tone player
             tonePlayer.readMessage(); // Reset the tone player
-            Serial.println("Wait...");
+            //Serial.println("Wait...");
             Serial.println("Expecting player not busy...");
             stateInitialized = true;
             timer.armTimer(STARTING_DURATION); // Set timer for 30 seconds
         }
         
-        // wait for tone player not to be busy
+        
+        //currentState = waitEvent(currentState, [&]() { return  tonePlayer.availableExceptTimeOut(); }, TONE_PLAYER_CONFIGURE);
         currentState = waitEvent(currentState, [&]() { return  tonePlayer.available(); }, TONE_PLAYER_CONFIGURE);
         // wait for tone player not to be busy
-        currentState = waitEvent(currentState, [&]() { return timer.checkTimer(); }, TONE_PLAYER_CONFIGURE);
+        currentState = waitEvent(currentState, [&]() { return timer.checkTimer(); }, TONE_PLAYER_START_ERROR);
+
+        // wait for tone player not to be busy
+        //tonePlayer.reset(); // Reset the tone player
+        //delay(500); // Wait for the player to power on
 
         if (currentState != TONE_PLAYER_RESTART) {stateInitialized = false;}
-        /*
-            //starting the tone player
-            //tonePlayer.powerOn(); // Power on the player
-            //delay(2000); // Wait for the player to power on
-            //tonePlayer.begin(); // Initialisation du lecteur de tonalité
-            tonePlayer.startup(); // Initialisation du lecteur de tonalité
-
-            Serial.println("TonePlayer initialized completed");
-            currentState = WELCOME_MESSAGE;
-            */
         
     break;
+    
+     case TONE_PLAYER_START_ERROR:
+        
+        Serial.println("State: TONE_PLAYER_START_ERROR");
+        tonePlayer.powerOff(); // Power off the player
+        delay(1000); // Wait for 1 second to ensure the player is off   
+        // If the tone player is not available, we cannot proceed
+        currentState =  TONE_PLAYER_RESTART;
+        stateInitialized = false;
+
+        break;
+
 
     case TONE_PLAYER_CONFIGURE:
         if (!stateInitialized)
@@ -272,7 +281,9 @@ void loop()
             Serial.printf("Volume set to %d \n", config.getVolume());
             tonePlayer.readMessage(); // Read the message from the player
             //Serial.printf("Volume read from DFPlayer: %d\n", tonePlayer.readVolume());
-            //tonePlayer.enableDAC();
+            #ifdef BOARD_LOLIN_C3_MINI
+            tonePlayer.enableDAC();
+            #endif
             Serial.println(F("Player initialized"));
         }
 

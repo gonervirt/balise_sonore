@@ -106,6 +106,10 @@ public:
     int readVolume();
 
     bool available();
+    bool availableExceptTimeOut();
+
+
+
     
 
     void printDetail(uint8_t type, int value);
