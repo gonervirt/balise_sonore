@@ -108,8 +108,8 @@ RadioMessageHandler inputHandler(RADIO_PIN);
 enum AppState
 {
     STARTING,
-    START_TONE_PLAYER_1,
-    START_TONE_PLAYER_2,
+    TONE_PLAYER_RESTART,
+    TONE_PLAYER_CONFIGURE,
     WELCOME,
     READY_WAITING,
     START_TONE_PLAYER,
@@ -213,13 +213,13 @@ void loop()
 
         case STARTING:
             Serial.println("State: STARTING");
-            currentState = START_TONE_PLAYER_1; // Transition to START_TONE_PLAYER state
+            currentState = TONE_PLAYER_RESTART; // Transition to START_TONE_PLAYER state
             delay(4000); // Wait for 4 seconds before transitioning
             stateInitialized = false; // Reset state initialization flag
             targetState = WELCOME;
             break;
 
-        case START_TONE_PLAYER_1:
+        case TONE_PLAYER_RESTART:
         /* Entry actions:
          * - Play welcome message (tone 3)
          *
@@ -232,9 +232,10 @@ void loop()
          */
         if (!stateInitialized)
         {
-            Serial.println("State: START_TONE_PLAYER_1");
+            Serial.println("State: TONE_PLAYER_RESTART");
             Serial.println("reset...");
             tonePlayer.reset(); // Reset the tone player
+            tonePlayer.readMessage(); // Reset the tone player
             Serial.println("Wait...");
             Serial.println("Expecting player not busy...");
             stateInitialized = true;
@@ -242,11 +243,11 @@ void loop()
         }
         
         // wait for tone player not to be busy
-        currentState = waitEvent(currentState, [&]() { return  tonePlayer.available(); }, START_TONE_PLAYER_2);
+        currentState = waitEvent(currentState, [&]() { return  tonePlayer.available(); }, TONE_PLAYER_CONFIGURE);
         // wait for tone player not to be busy
-        currentState = waitEvent(currentState, [&]() { return timer.checkTimer(); }, START_TONE_PLAYER_2);
+        currentState = waitEvent(currentState, [&]() { return timer.checkTimer(); }, TONE_PLAYER_CONFIGURE);
 
-        if (currentState != START_TONE_PLAYER_1) {stateInitialized = false;}
+        if (currentState != TONE_PLAYER_RESTART) {stateInitialized = false;}
         /*
             //starting the tone player
             //tonePlayer.powerOn(); // Power on the player
@@ -260,15 +261,16 @@ void loop()
         
     break;
 
-    case START_TONE_PLAYER_2:
+    case TONE_PLAYER_CONFIGURE:
         if (!stateInitialized)
         {
-            Serial.println("State: START_TONE_PLAYER_2");
+            Serial.println("State: TONE_PLAYER_CONFIGURE");
             tonePlayer.readMessage();
             tonePlayer.adjustVolume(config.getVolume());  // Use volume from config
             Serial.printf("Volume set to %d \n", config.getVolume());
-            Serial.printf("Volume read from DFPlayer: %d\n", tonePlayer.readVolume());
-            tonePlayer.enableDAC();
+            tonePlayer.readMessage(); // Read the message from the player
+            //Serial.printf("Volume read from DFPlayer: %d\n", tonePlayer.readVolume());
+            //tonePlayer.enableDAC();
             Serial.println(F("Player initialized"));
         }
 
@@ -332,7 +334,7 @@ void loop()
                 // target new playing tone tone state but have to restart the tone player
                 targetState = PLAYING_TONE;
                 // enter sub state machine to restart the tone player
-                currentState = START_TONE_PLAYER_1;
+                currentState = TONE_PLAYER_RESTART;
                 stateInitialized = false;}
         break;
 
