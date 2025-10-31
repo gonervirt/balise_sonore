@@ -172,7 +172,8 @@ bool TonePlayer::busy() {
         return true;
     }
     // player is idle
-    Serial.println("Player is idle"); 
+    Serial.println("Player is idle (hardware detection: busy pin is low)"); 
+    Serial.println(F("Current play Finished!"));
     return false;
 }
 
@@ -224,19 +225,19 @@ bool TonePlayer::isPlaying() const {
 }
 
 void TonePlayer::powerOn() const {
-    digitalWrite(powerPin, LOW);  // Power on the player
+    digitalWrite(powerPin, HIGH);  // Power on the player
     Serial.println("DF mini Power on");
 }
 
 void TonePlayer::powerOff() const {
-    digitalWrite(powerPin, HIGH);  // Power off the player
+    digitalWrite(powerPin, LOW);  // Power off the player
     Serial.println("DF mini Power off");
 }
 
 void TonePlayer::printDetail(uint8_t type, int value){
   switch (type) {
     case TimeOut:
-      Serial.println(F("Time Out!"));
+      Serial.println(F("                    ---> Time Out!"));
       break;
     case WrongStack:
       Serial.println(F("Stack Wrong!"));
@@ -257,6 +258,7 @@ void TonePlayer::printDetail(uint8_t type, int value){
       Serial.println("USB Removed!");
       break;
     case DFPlayerPlayFinished:
+      Serial.print(F("DFPlayerPlayFinished --> software detection"));
       Serial.print(F("Number:"));
       Serial.print(value);
       Serial.println(F(" Play Finished!"));

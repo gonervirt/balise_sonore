@@ -118,6 +118,22 @@ enum AppState
     DESACTIVATED
 };
 
+// Add helper to convert AppState to string
+const char* appStateToString(AppState s) {
+    switch (s) {
+        case STARTING: return "STARTING";
+        case TONE_PLAYER_RESTART: return "TONE_PLAYER_RESTART";
+        case TONE_PLAYER_START_ERROR: return "TONE_PLAYER_START_ERROR";
+        case TONE_PLAYER_CONFIGURE: return "TONE_PLAYER_CONFIGURE";
+        case WELCOME_MESSAGE: return "WELCOME_MESSAGE";
+        case READY_WAITING: return "READY_WAITING";
+        case PLAYING_TONE: return "PLAYING_TONE";
+        case INHIBITED: return "INHIBITED";
+        case DESACTIVATED: return "DESACTIVATED";
+        default: return "UNKNOWN";
+    }
+}
+
 // Add state machine variables
 AppState currentState = STARTING;
 unsigned long stateStartTime = 0;
@@ -139,6 +155,17 @@ AppState targetState; // Initialize next state
 //const unsigned long WIFI_CHECK_INTERVAL = 5000; // Check every 5 seconds
 
 
+// Returns "[YYYY-MM-DD HH:MM:SS.mmm] "
+String timestamp() {
+    struct timeval tv; gettimeofday(&tv, nullptr);
+    struct tm t; localtime_r(&tv.tv_sec, &t);
+    char buf[32];
+    strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &t);
+    int ms = tv.tv_usec / 1000;
+    char out[40];
+    snprintf(out, sizeof(out), "[%s.%03d] ", buf, ms);
+    return String(out);
+}
 
 /**
  * @brief Waits for an event to occur before transitioning to the next state.
@@ -150,11 +177,16 @@ AppState targetState; // Initialize next state
 AppState waitEvent(AppState currentEvent, std::function<bool()> condition, AppState nextEvent) {
     if (condition()) {
         // wait event is met, transition to next state
-        Serial.printf("Event poped: Transitioning from %d to %d\n", currentEvent, nextEvent);
+        Serial.print(timestamp());
+        Serial.printf("Event popped: Transitioning from %s to %s\n",
+                      appStateToString(currentEvent),
+                      appStateToString(nextEvent));
         return nextEvent;
     }
     return currentEvent;
 }
+
+
 
 
 
@@ -212,6 +244,7 @@ void loop()
     {
 
         case STARTING:
+            Serial.print(timestamp());
             Serial.println("State: STARTING");
             currentState = TONE_PLAYER_RESTART; // Transition to START_TONE_PLAYER state
             delay(4000); // Wait for 4 seconds before transitioning
@@ -232,16 +265,17 @@ void loop()
          */
         if (!stateInitialized)
         {
+            Serial.print(timestamp());
             Serial.println("State: TONE_PLAYER_RESTART");
             tonePlayer.powerOn(); // Reset the tone player
-            delay(1000); // Wait for the player to power on
-            tonePlayer.readMessage(); // Reset the tone player
-            Serial.println("reset...");
+            //delay(1000); // Wait for the player to power on
+            //tonePlayer.readMessage(); // Reset the tone player
+            //Serial.println("reset...");
           
-           tonePlayer.reset(); // Reset the tone player
-            tonePlayer.readMessage(); // Reset the tone player
+            //tonePlayer.reset(); // Reset the tone player
+            //tonePlayer.readMessage(); // Reset the tone player
             //Serial.println("Wait...");
-            Serial.println("Expecting player not busy...");
+            //Serial.println("Expecting player not busy...");
             stateInitialized = true;
             timer.armTimer(STARTING_DURATION); // Set timer for 30 seconds
         }
@@ -261,7 +295,7 @@ void loop()
     break;
     
      case TONE_PLAYER_START_ERROR:
-        
+        Serial.print(timestamp());
         Serial.println("State: TONE_PLAYER_START_ERROR");
         tonePlayer.powerOff(); // Power off the player
         delay(1000); // Wait for 1 second to ensure the player is off   
@@ -275,6 +309,7 @@ void loop()
     case TONE_PLAYER_CONFIGURE:
         if (!stateInitialized)
         {
+            Serial.print(timestamp());
             Serial.println("State: TONE_PLAYER_CONFIGURE");
             tonePlayer.readMessage();
             tonePlayer.adjustVolume(config.getVolume());  // Use volume from config
@@ -305,6 +340,7 @@ void loop()
          */
         if (!stateInitialized)
         {
+            Serial.print(timestamp());
             Serial.println("State: WELCOME_MESSAGE");
             tonePlayer.playTone(4);
             ledManager.setYellow();
@@ -334,6 +370,7 @@ void loop()
          */
         if (!stateInitialized)
         {
+            Serial.print(timestamp());
             Serial.println("State: READY_WAITING");
             ledManager.setGreen();
             tonePlayer.readMessage(); // check if message still available
@@ -368,6 +405,7 @@ void loop()
          */
         if (!stateInitialized)
         {
+            Serial.print(timestamp());
             Serial.println("State: PLAYING_TONE");
             ledManager.setYellow();
             tonePlayer.playTone(config.getNumeroMessage());
@@ -399,17 +437,15 @@ void loop()
          */
         if (!stateInitialized)
         {
+            Serial.print(timestamp());
             Serial.println("State: INHIBITED");
             ledManager.setGreenYellow();
             stateInitialized = true;
             timer.armTimer(INHIBIT_DURATION); // Set timer for 10 seconds
             //shutdown the tone player
-            tonePlayer.readMessage(); // Read the message from the player
             tonePlayer.powerOff(); // Power off the player
-            delay(1000); // Wait for 1 second to ensure the player is off
-            tonePlayer.powerOn(); // Reset the tone player
-            delay(2000); // Wait for the player to power on
-            tonePlayer.powerOff(); // Reset the tone player
+            tonePlayer.readMessage(); // Read the message from the player
+            tonePlayer.readMessage(); // Read the message from the player
         }
         
         // wait timer
