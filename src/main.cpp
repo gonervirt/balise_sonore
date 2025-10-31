@@ -24,7 +24,7 @@
 #define FIRMWARE_VERSION "development"
 #endif
 
-#define DISABLE_WIFI 1 
+//#define DISABLE_WIFI 0 
 
 
 #ifndef DISABLE_WIFI
@@ -79,15 +79,6 @@
 
 
 
-
-
-
-
-#ifndef DISABLE_WIFI
-//WiFiManager wifiManager(config);
-WebServerManager *webServer;
-#endif
-
 // Initialize management objects
 Config config(DEFAULT_VOLUME); // Pass default volume to Config constructor
 TonePlayer tonePlayer(RXD2, TXD2, BUSY_PIN, TONE_PLAYER_POWER_PIN, config);  // Updated constructor call
@@ -102,6 +93,10 @@ RadioMessageHandler inputHandler(RADIO_PIN);
 RadioMessageHandler inputHandler(RADIO_PIN);
 #else
 #error "No input handler defined for this board"
+#endif
+#ifndef DISABLE_WIFI
+WiFiManager wifiManager(config);
+WebServerManager *webServer;
 #endif
 
 // Add state machine enum
@@ -145,7 +140,7 @@ bool stateInitialized = false;
 unsigned long lastToneUpdateTime = 0;
 const unsigned long TONE_UPDATE_INTERVAL = 1000; // 1 second interval
 
-AppState targetState; // Initialize next state
+//AppState targetState; // Initialize next state
 
 // Add state machine variables after other defines
 #define STARTING_DURATION 10000 // 30 seconds for starting state
@@ -219,12 +214,16 @@ void setup()
 
     #ifndef DISABLE_WIFI
     // Initialize WiFi
-    WiFi.mode(WIFI_AP);
-    bool success = WiFi.softAP(config.getWifiSSID(), config.getWifiPassword());
+    wifiManager.begin();
+    Serial.println("WiFi initialized");
+    //WiFi.mode(WIFI_AP);
+    //bool success = WiFi.softAP(config.getWifiSSID(), config.getWifiPassword());
+    //Serial.println("Start Wifi Access Point : " + String(config.getWifiSSID()) + " / " + String(config.getWifiPassword()));
 
     // Initialize WebServerManager
     webServer = new WebServerManager(config);
     webServer->begin();
+    Serial.println("Start webServer");
     #endif
 
 
