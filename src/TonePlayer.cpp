@@ -101,6 +101,12 @@ void TonePlayer::readMessage() {
     }
 }
 
+bool TonePlayer::isAlive() {
+    // Try to read current volume as a health check
+    int vol = myMP3player.readVolume();
+    return myMP3player.available();
+}
+
 bool TonePlayer::available() {
     return myMP3player.available();
 } 
@@ -118,34 +124,6 @@ bool TonePlayer::availableExceptTimeOut() {
 
 
 
-
-void TonePlayer::startup1() {
-    Serial.println(F("Initializing DFPlayer Mini..."));
-    int count = 0;
-    while (!busy() && count < 10) {
-        Serial.print(F("."));
-        delay(1000);
-        count++;
-    }
-    myMP3player.reset();
-    delay(1000);
-    count = 0;
-    while (!busy() && count < 10) {
-        Serial.print(F("."));
-        delay(1000);
-        count++;
-    }
-        
-    update(); // Clear any pending events
-    Serial.println(F(""));
-    
-
-    Serial.println(F("DFPlayer Mini online."));
-    myMP3player.enableDAC();
-    adjustVolume(config.getVolume());  // Use volume from config
-    Serial.printf("Volume set to %d \n", config.getVolume());
-    Serial.println(F("Player initialized"));
-}
 
 /**
  * @brief Lance la lecture d'un message audio

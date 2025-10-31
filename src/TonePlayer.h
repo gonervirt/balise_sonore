@@ -94,6 +94,8 @@ public:
      */
     void powerOff() const;
 
+    bool isAlive();
+
     /**
      * @brief Vérifie l'état du lecteur
      * @return true si la lecture est terminée, false sinon
