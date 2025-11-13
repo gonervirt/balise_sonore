@@ -9,6 +9,7 @@ WiFiManager::WiFiManager(const char* ap_ssid, const char* ap_password) {
     this->hidden_ssid = false;
     this->lastCheckTime = 0;
     this->lastLogTime = 0;
+    this->_isAlive = false;
 }
 
 WiFiManager::WiFiManager(const char* sta_ssid, const char* sta_password, bool station) {
@@ -19,6 +20,7 @@ WiFiManager::WiFiManager(const char* sta_ssid, const char* sta_password, bool st
     this->hidden_ssid = false;
     this->lastCheckTime = 0;
     this->lastLogTime = 0;
+    this->_isAlive = false;
 }
 
 WiFiManager::WiFiManager(Config &config) {
@@ -29,13 +31,26 @@ WiFiManager::WiFiManager(Config &config) {
     this->hidden_ssid = config.isHiddenSSID();
     this->lastCheckTime = 0;
     this->lastLogTime = 0;
+    this->_isAlive = false;
+    _config = &config;
 }
 
 bool WiFiManager::begin() {
     if (isAP) {
         Serial.println("Starting Access Point mode...");
-        WiFi.mode(WIFI_AP_STA);
-        WiFi.setSleep(false);
+        WiFi.mode(WIFI_AP);
+
+        /*
+        const char* ssid = "BALISESONORE";
+        const char* apPass= "BaliseSonore_Betton_Mairie";
+
+        
+        WiFi.softAP(ssid, apPass, 6, 0, 4); // Start the AP
+        Serial.print("Access Point IP: ");
+        Serial.println(WiFi.softAPIP()); // Print AP's IP address
+        */
+        
+        //WiFi.setSleep(false);
 
         if (ssid.length() == 0) {
             Serial.println("ERROR: AP SSID is empty");
@@ -62,13 +77,16 @@ bool WiFiManager::begin() {
             Serial.println("Warning: softAP started but IP is 0.0.0.0");
             return false;
         }
+        
 
         Serial.println("Access Point started successfully");
         Serial.printf("SSID: %s\n", ssid.c_str());
         Serial.printf("Password: %s\n", apPass);
         Serial.printf("IP Address: %s\n", ip.toString().c_str());
         Serial.printf("Channel: %d Hidden: %s\n", channel, hidden_ssid ? "yes" : "no");
-
+        // set isAlive to true on successful start
+        _isAlive = true;
+        
         // register events if needed (keep existing handler)
         esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_AP_STACONNECTED, &event_handler, NULL);
         esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_AP_STADISCONNECTED, &event_handler, NULL);
@@ -106,6 +124,43 @@ bool WiFiManager::begin() {
         Serial.println("Failed to connect to WiFi");
         return false;
     }
+}
+
+bool WiFiManager::isAlive() {
+    return _isAlive;
+}
+
+void WiFiManager::stopAP() {
+  Serial.println("Stopping Access Point...");
+  WiFi.softAPdisconnect(true);
+  Serial.println("pt2");
+  WiFi.mode(WIFI_OFF);
+  Serial.println("Access Point stopped.");
+  _isAlive = false;
+}
+
+void WiFiManager::startAP() {
+  Serial.println("\n[INFO] Starting Access Point...");
+  if (_config != nullptr) { 
+    ssid = String(_config->getWifiSSID());
+    password = String(_config->getWifiPassword());
+    isAP = _config->isAccessPoint();
+    channel = _config->getWifiChannel();
+    hidden_ssid = _config->isHiddenSSID();
+  }
+  WiFi.mode(WIFI_AP);  // Ensure we’re in AP mode
+  bool success = WiFi.softAP(ssid, password, channel, hidden_ssid);
+  if (success) {
+    Serial.println("[OK] Access Point started!");
+    Serial.println("Access Point started successfully");
+    Serial.printf("SSID: %s\n", ssid.c_str());
+    Serial.printf("Password: %s\n", password.c_str());
+    Serial.printf("IP Address: %s\n", WiFi.softAPIP().toString().c_str());
+    Serial.printf("Channel: %d Hidden: %s\n", channel, hidden_ssid ? "yes" : "no");
+    _isAlive = true;
+  } else {
+    Serial.println("[ERROR] Failed to start AP.");
+  }
 }
 
 String WiFiManager::getIP() {

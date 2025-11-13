@@ -51,7 +51,9 @@ public:
     void checkAndRestartAP();
     void logAPStatus();
     void loop();
-
+    bool isAlive();
+    void startAP();
+    void stopAP();
     static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
 
 private:
@@ -63,6 +65,8 @@ private:
     bool hidden_ssid = false;
     unsigned long lastCheckTime = 0;
     unsigned long lastLogTime = 0;
+    bool _isAlive = false;
+    Config *_config = (Config *) nullptr;
 };
 
 #endif // WIFI_MANAGER_H

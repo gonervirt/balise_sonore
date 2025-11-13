@@ -97,6 +97,8 @@ RadioMessageHandler inputHandler(RADIO_PIN);
 #ifndef DISABLE_WIFI
 WiFiManager wifiManager(config);
 WebServerManager *webServer;
+Timer wifiLiveDurationTimer; // Timer for periodic WiFi checks
+const unsigned long WIFI_LIVE_DURATION = 120000; // 2 minutes 
 #endif
 
 // Add state machine enum
@@ -104,13 +106,13 @@ enum AppState
 {
     STARTING,
     HOT_RESTART,
-    COLD_RESTART,
-    TONE_PLAYER_START_ERROR,
+   // COLD_RESTART,
+   // TONE_PLAYER_START_ERROR,
     WELCOME_MESSAGE,
     READY_WAITING,
     PLAYING_TONE,
     INHIBITED,
-    CHECK_ALIVE,
+  // CHECK_ALIVE,
     DESACTIVATED
 };
 
@@ -119,13 +121,13 @@ const char* appStateToString(AppState s) {
     switch (s) {
         case STARTING: return "STARTING";
         case HOT_RESTART: return "HOT_RESTART";
-        case COLD_RESTART: return "COLD_RESTART";
-        case TONE_PLAYER_START_ERROR: return "TONE_PLAYER_START_ERROR";
+     //   case COLD_RESTART: return "COLD_RESTART";
+     //   case TONE_PLAYER_START_ERROR: return "TONE_PLAYER_START_ERROR";
         case WELCOME_MESSAGE: return "WELCOME_MESSAGE";
         case READY_WAITING: return "READY_WAITING";
         case PLAYING_TONE: return "PLAYING_TONE";
         case INHIBITED: return "INHIBITED";
-        case CHECK_ALIVE: return "CHECK_ALIVE";
+     //   case CHECK_ALIVE: return "CHECK_ALIVE";
         case DESACTIVATED: return "DESACTIVATED";
         default: return "UNKNOWN";
     }
@@ -221,9 +223,11 @@ void setup()
     //Serial.println("Start Wifi Access Point : " + String(config.getWifiSSID()) + " / " + String(config.getWifiPassword()));
 
     // Initialize WebServerManager
+    Serial.println("Start webServer");
+    delay(1000); // Wait a moment before starting the web server
     webServer = new WebServerManager(config);
     webServer->begin();
-    Serial.println("Start webServer");
+    Serial.println("webServer started");
     #endif
 
 
@@ -236,7 +240,9 @@ void loop()
 {
     #ifndef DISABLE_WIFI
     // Add at the beginning of the loop function
-    webServer->handleClient();
+    if (wifiManager.isAlive()) {
+        webServer->handleClient();
+    }
     #endif
 
 
@@ -263,9 +269,15 @@ void loop()
             Serial.println(F("Player initialized"));
             stateInitialized = false; // Reset state initialization flag
             //targetState = COLD_RESTART;
+            #ifndef DISABLE_WIFI
+            // reset WiFi live duration timer
+            wifiLiveDurationTimer.armTimer(WIFI_LIVE_DURATION);
+            #endif
+            // next state
+            currentState = WELCOME_MESSAGE; // Transition to WELCOME_MESSAGE state
             break;
 
-        case COLD_RESTART:
+     //   case COLD_RESTART:
         /* Entry actions:
          * - Play WELCOME_MESSAGE message (tone 3)
          *
@@ -276,7 +288,7 @@ void loop()
          * - After 30 seconds (STARTING_DURATION)
          * - Transitions to READY_WAITING
          */
-        if (!stateInitialized)
+    /*    if (!stateInitialized)
         {
             Serial.print(timestamp());
             Serial.println("State: COLD_RESTART");
@@ -308,6 +320,7 @@ void loop()
         if (currentState != COLD_RESTART) {stateInitialized = false;}
         
     break;
+    */
 
     case HOT_RESTART:
         /* Entry actions:
@@ -328,6 +341,18 @@ void loop()
             tonePlayer.readMessage(); // Reset the tone player
             stateInitialized = true;
             timer.armTimer(STARTING_DURATION); // Set timer for 30 seconds
+            #ifndef DISABLE_WIFI
+            // reset WiFi live duration timer
+            wifiLiveDurationTimer.armTimer(WIFI_LIVE_DURATION);
+            if (!wifiManager.isAlive()) {
+                Serial.println("Wifi restarting Access Point...");
+                wifiManager.startAP();
+            } else {
+                Serial.println("Wifi is alive, skipping start AP");
+            }
+            #endif
+
+
         }
         
         
@@ -344,7 +369,7 @@ void loop()
         
     break;
 
-   
+   /*
      case TONE_PLAYER_START_ERROR:
         Serial.print(timestamp());
         Serial.println("State: TONE_PLAYER_START_ERROR");
@@ -355,6 +380,7 @@ void loop()
         stateInitialized = false;
 
         break;
+*/
 
     case WELCOME_MESSAGE:
         /* Entry actions:
@@ -404,18 +430,18 @@ void loop()
             ledManager.setGreen();
             tonePlayer.readMessage(); // check if message still available
             //targetState = PLAYING_TONE;
-            timer.armTimer(CHECK_ALIVE_TIMER); // Set timer for 2 hourss
+            //timer.armTimer(CHECK_ALIVE_TIMER); // Set timer for 2 hourss
             stateInitialized = true;
         }
-        // recurring
+        // check if a input hanlder is ativated
         inputHandler.update();
-        // manage events
-
+        // if event is activated, go to state HOT_RESTART
         currentState = waitEvent(currentState, [&]() { return inputHandler.isActivated(); }, HOT_RESTART);
-
-        // watch dog timer
-        currentState = waitEvent(currentState, [&]() { return timer.checkTimer(); }, CHECK_ALIVE);
-
+        // stop the wifi after WIFI_LIVE_DURATION
+        if (wifiLiveDurationTimer.checkTimer()) {
+            wifiManager.stopAP();
+        }
+        
         if (currentState != READY_WAITING) {stateInitialized = false;}
         /*
         currentState = waitEvent(currentState, [&]() { return inputHandler.isActivated(); }, PLAYING_TONE);
@@ -429,7 +455,7 @@ void loop()
                 */
         break;
 
-    case CHECK_ALIVE:
+//    case CHECK_ALIVE:
         /* Entry actions:
          * - Set LED to yellow
          * - Start playing configured message
@@ -441,7 +467,7 @@ void loop()
          * - Tone finishes playing
          * - Transitions to INHIBITED
          */
-        if (!stateInitialized)
+    /*    if (!stateInitialized)
         {
             Serial.print(timestamp());
             Serial.println("State: CHECK_ALIVE");
@@ -457,7 +483,7 @@ void loop()
         
         if (currentState != CHECK_ALIVE) {stateInitialized = false;}
         break;
-
+*/
 
     case PLAYING_TONE:
         /* Entry actions:

@@ -39,8 +39,8 @@ String WebServerManager::formatConfigItem(const char* label, const String& value
 }
 
 void WebServerManager::begin() {
-    setupRoutes();
     server.begin();
+    setupRoutes();
     Serial.println("Web server started successfully");
 }
 
