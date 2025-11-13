@@ -241,7 +241,12 @@ void loop()
     #ifndef DISABLE_WIFI
     // Add at the beginning of the loop function
     if (wifiManager.isAlive()) {
-        webServer->handleClient();
+        if (webServer->handleClient()){
+            // a web client was handled, reset timer before switch off wifi
+            // reset WiFi live duration timer
+            Serial.print("Web page handled, extending WiFi live duration\n");
+            wifiLiveDurationTimer.armTimer(WIFI_LIVE_DURATION);
+        };
     }
     #endif
 
