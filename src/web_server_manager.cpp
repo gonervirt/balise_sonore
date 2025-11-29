@@ -39,13 +39,16 @@ String WebServerManager::formatConfigItem(const char* label, const String& value
 }
 
 void WebServerManager::begin() {
-    setupRoutes();
     server.begin();
+    setupRoutes();
     Serial.println("Web server started successfully");
 }
 
-void WebServerManager::handleClient() {
+bool WebServerManager::handleClient() {
+    _webPageHandled = false;
     server.handleClient();
+    // is true if a web page was handled
+    return _webPageHandled;
 }
 
 void WebServerManager::setupRoutes() {
@@ -65,6 +68,8 @@ void WebServerManager::setupRoutes() {
 
 void WebServerManager::handleRoot() {
     Serial.println("Handling root page request");
+    _webPageHandled = true;
+
     String html = getHeader("Portail balise sonore");
     
     html += "<div class='config-section'>";
@@ -81,6 +86,8 @@ void WebServerManager::handleRoot() {
 
 void WebServerManager::handleWifiConfig() {
     Serial.println("Handling WiFi configuration page request");
+    _webPageHandled = true;
+
     String html = getHeader("WiFi Configuration");
     
     html += "<div class='config-section'>";
@@ -114,6 +121,8 @@ void WebServerManager::handleWifiConfig() {
 
 void WebServerManager::handleWifiSave() {
     Serial.println("Processing WiFi configuration save");
+    _webPageHandled = true;
+
     if (server.hasArg("ssid") && server.hasArg("mode")) {
         String ssid = server.arg("ssid");
         String password = server.arg("password");
@@ -148,6 +157,8 @@ void WebServerManager::handleWifiSave() {
 
 void WebServerManager::handleMessageConfig() {
     Serial.println("Handling message configuration page request");
+    _webPageHandled = true;
+
     String html = getHeader("Message Configuration");
     
     html += "<div class='config-section'>";
@@ -253,6 +264,8 @@ void WebServerManager::handleMessageConfig() {
 
 void WebServerManager::handleMessageSave() {
     Serial.println("Processing message configuration save");
+    _webPageHandled = true;
+
     if (server.hasArg("messageNum")) {
         int messageNum = server.arg("messageNum").toInt();
         
@@ -309,6 +322,8 @@ void WebServerManager::handleMessageSave() {
 
 void WebServerManager::handleMessageTextSave() {
     Serial.println("Processing message text save");
+    _webPageHandled = true;
+
     if (server.hasArg("number") && server.hasArg("text")) {
         int number = server.arg("number").toInt();
         String text = server.arg("text");
@@ -337,6 +352,7 @@ void WebServerManager::handleMessageTextSave() {
 }
 
 void WebServerManager::handleVolumeSave() {
+    _webPageHandled = true;
     if (server.hasArg("volume")) {
         int volume = server.arg("volume").toInt();
         volume = constrain(volume, 0, 30);  // Ensure volume is within valid range
@@ -353,6 +369,8 @@ void WebServerManager::handleVolumeSave() {
 
 void WebServerManager::handleEsp32Config() {
     Serial.println("Handling ESP32 configuration page request");
+    _webPageHandled = true;
+
     String html = getHeader("ESP32 Config");
     
     html += "<div class='config-section'>";
@@ -378,6 +396,8 @@ void WebServerManager::handleEsp32Config() {
 }
 
 void WebServerManager::handleEsp32Action() {
+    _webPageHandled = true;
+
     if (server.hasArg("action")) {
         String action = server.arg("action");
         
@@ -405,6 +425,8 @@ void WebServerManager::handleEsp32Action() {
 }
 
 void WebServerManager::handleNotFound() {
+    _webPageHandled = true;
+    
     Serial.println("404 Not Found: " + server.uri());
     server.send(404, "text/plain", "Not found");
 }

@@ -41,6 +41,7 @@ class WebServerManager {
 private:
     WebServer server;
     Config& config;
+    bool _webPageHandled = false;
     
     /** Generate HTML header with navigation */
     String getHeader(const char* title);
@@ -62,7 +63,7 @@ public:
     void begin();
     
     /** Handle incoming client requests */
-    void handleClient();
+    bool handleClient();
     
     /** Setup all route handlers */
     void setupRoutes();

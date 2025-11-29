@@ -28,79 +28,45 @@
 #ifndef WIFI_MANAGER_H
 #define WIFI_MANAGER_H
 
+#include <Arduino.h>
 #include <WiFi.h>
 #include "Config.h"
-#include "esp_event.h"
 
-// Define WiFi task priority
-#define WIFI_TASK_PRIORITY 5
-
-/**
- * @brief WiFi connection manager
- * 
- * Handles WiFi configuration and connection in both
- * Access Point and Station modes
- */
 class WiFiManager {
-private:
-    const char* ssid;      // Network name
-    const char* password;  // Network password
-    bool isAP;            // Mode flag (true = AP, false = Station)
-    uint8_t channel;      // WiFi channel (1-13)
-    bool hidden_ssid;     // SSID visibility flag
-    unsigned long lastCheckTime;  // New variable for timing
-    unsigned long lastLogTime;    // New variable for logging
-    
-    void checkAndRestartAP();    // New private method
-    void logAPStatus();          // New private method
-
-    // Add event handler declaration
-    static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
-
 public:
-    /**
-     * Create WiFi manager in Access Point mode
-     * @param ap_ssid Network name
-     * @param ap_password Network password
-     */
-    WiFiManager(const char* ap_ssid, const char* ap_password);
-    
-    /**
-     * Create WiFi manager in Station mode
-     * @param sta_ssid Network to connect to
-     * @param sta_password Network password
-     * @param station Must be true (used to differentiate from AP constructor)
-     */
-    WiFiManager(const char* sta_ssid, const char* sta_password, bool station);
-
-    /**
-     * Create WiFi manager from configuration
-     * @param config Configuration object containing WiFi settings
-     */
-    WiFiManager(Config &config);
-    
-    /**
-     * Initialize WiFi connection
-     * @return true if connection successful
-     */
-    bool begin();
-    
-    /**
-     * Get current IP address
-     * @return IP address as string
-     */
-    String getIP();
-
     struct WifiStatus {
         String ssid;
         String ip;
         bool isConnected;
         int rssi;
     };
-    
-    WifiStatus checkStatus();
 
-    void loop();                 // New public method
+    WiFiManager(const char* ap_ssid, const char* ap_password);
+    WiFiManager(const char* sta_ssid, const char* sta_password, bool station);
+    WiFiManager(Config &config);
+
+    bool begin();
+    String getIP();
+    WifiStatus checkStatus();
+    void checkAndRestartAP();
+    void logAPStatus();
+    void loop();
+    bool isAlive();
+    void startAP();
+    void stopAP();
+    static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
+
+private:
+    // store copies to avoid lifetime issues
+    String ssid;
+    String password;
+    bool isAP = false;
+    int channel = 6;
+    bool hidden_ssid = false;
+    unsigned long lastCheckTime = 0;
+    unsigned long lastLogTime = 0;
+    bool _isAlive = false;
+    Config *_config = (Config *) nullptr;
 };
 
-#endif
+#endif // WIFI_MANAGER_H

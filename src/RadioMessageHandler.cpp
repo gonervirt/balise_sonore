@@ -111,5 +111,5 @@ void RadioMessageHandler::resetActivation() {
     messageReceived = false;
     status = WAITING_MSG;
     currentMessage.isValid = false;
-    Serial.println("Message handler reset");
+    Serial.println("Message handler reset --> Enabling new message reception");
 }

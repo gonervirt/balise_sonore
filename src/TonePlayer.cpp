@@ -16,6 +16,8 @@ TonePlayer::TonePlayer(int _rxd2, int _txd2, int _busyPin, int _powerpin, Config
     powerPin = _powerpin;
     serial2player = new SoftwareSerial(rxd2, txd2);
     pinMode(powerPin, OUTPUT);
+    // Configure busy pin as input with pull-up
+    pinMode(busyPin, INPUT_PULLUP);
 }
 
 /**
@@ -39,41 +41,89 @@ void TonePlayer::begin() {
         Serial.println("Error: serial2player not initialized");
         return;
     }
-
-    // Configure busy pin as input with pull-up
-    pinMode(busyPin, INPUT_PULLUP);
-
     serial2player->begin(9600);
     myMP3player.setTimeOut(1000);
     myMP3player.begin(*serial2player, /*isACK = */true, /*doReset = */true);
-    Serial.println(F("Waiting DF player"));
-    //delay(1000);
-
-    int count = 0;
-    while (!checkPlayerState() && count < 10) {
-        Serial.print(F("."));
-        delay(1000);
-        count++;
-    }
+    readMessage();  // Read initial message from DFPlayer
+    //myMP3player.setTimeOut(500);
+    //Serial.println(F("Waiting DF player"));
+    /*
+    delay(5000);
     myMP3player.reset();
-    delay(1000);
-    count = 0;
-    while (!checkPlayerState() && count < 10) {
-        Serial.print(F("."));
-        delay(1000);
-        count++;
-    }
-        
-    update(); // Clear any pending events
-    Serial.println(F(""));
-    
+    delay(10000);
 
-    Serial.println(F("DFPlayer Mini online."));
-    myMP3player.enableDAC();
+    readMessage();
+    */
+    Serial.println(F("DF player begin completed."));
+    }
+
+void TonePlayer::enableDAC() {  
+    myMP3player.enableDAC();  // Enable DAC output
+    Serial.println(F("DAC enabled"));
+}
+
+int TonePlayer::readVolume() {  
+    return myMP3player.readVolume  ();  // read current volume
+}
+
+void TonePlayer::reset() {  
+    return myMP3player.reset  ();  // reset
+}
+
+void TonePlayer::startup() {
+    //delay(3000);
+    //myMP3player.reset();
+    //delay(10000);
+
+    readMessage();
+    int vol = myMP3player.readVolume();
+    Serial.printf("Volume read from DFPlayer: %d\n", vol);
+    readMessage();
+    //Serial.printf("waitAvailable");
+    //myMP3player.waitAvailable(1000); // Wait for DFPlayer to be ready
+    myMP3player.setTimeOut(500); //Set serial communictaion time out 500ms
+    //myMP3player.enableDAC();
     adjustVolume(config.getVolume());  // Use volume from config
     Serial.printf("Volume set to %d \n", config.getVolume());
+    vol = myMP3player.readVolume();
+    Serial.printf("Volume read from DFPlayer: %d\n", vol);
     Serial.println(F("Player initialized"));
+    //myMP3player.play(4);
+
 }
+
+void TonePlayer::readMessage() {
+    if (myMP3player.available()) {
+        printDetail(myMP3player.readType(), myMP3player.read()); //Print the detail message from DFPlayer to handle different errors and states.
+    }
+    else {
+        Serial.println(F("No message available from DFPlayer"));
+    }
+}
+
+bool TonePlayer::isAlive() {
+    // Try to read current volume as a health check
+    int vol = myMP3player.readVolume();
+    return myMP3player.available();
+}
+
+bool TonePlayer::available() {
+    return myMP3player.available();
+} 
+
+bool TonePlayer::availableExceptTimeOut() {
+    if (myMP3player.available())
+      {
+        uint8_t type = myMP3player.readType();
+        if (type != TimeOut) {
+            return true;  // Only return true if it's not a timeout message
+        }
+    } 
+    return false;  // No available message or it's a timeout message
+} 
+
+
+
 
 /**
  * @brief Lance la lecture d'un message audio
@@ -84,8 +134,7 @@ void TonePlayer::begin() {
 void TonePlayer::playTone(int messageNumber) {
     Serial.println("playTone " + String(messageNumber));
     myMP3player.play(messageNumber);
-    playing = true;
-    playStartTime = millis();
+    delay(500);
 }
 
 /**
@@ -94,16 +143,15 @@ void TonePlayer::playTone(int messageNumber) {
  * Interroge le DFPlayer pour connaître son état et détecter
  * la fin de lecture ou les erreurs éventuelles
  */
-bool TonePlayer::checkPlayerState() {
+bool TonePlayer::busy() {
     // HIGH means player is ready/idle, LOW means it's busy playing
-    
-    bool isReady = digitalRead(busyPin) == HIGH;
-    //Serial.println("Checking player state " + String(isReady));
-    
-    if (isReady) {
+    if (digitalRead(busyPin) == LOW) {
+      // Player is busy
         return true;
     }
-    
+    // player is idle
+    Serial.println("Player is idle (hardware detection: busy pin is low)"); 
+    Serial.println(F("Current play Finished!"));
     return false;
 }
 
@@ -120,7 +168,7 @@ void TonePlayer::update() {
     checkVolumeChange();
     
     // Check if playback finished
-    if (checkPlayerState()) {
+    if (busy()) {
         playing = false;
         return;
     }
@@ -155,11 +203,73 @@ bool TonePlayer::isPlaying() const {
 }
 
 void TonePlayer::powerOn() const {
-    digitalWrite(powerPin, LOW);  // Power on the player
-    Serial.println("Power on");
+    digitalWrite(powerPin, HIGH);  // Power on the player
+    Serial.println("DF mini Power on");
 }
 
 void TonePlayer::powerOff() const {
-    digitalWrite(powerPin, HIGH);  // Power off the player
-    Serial.println("Power off");
+    digitalWrite(powerPin, LOW);  // Power off the player
+    Serial.println("DF mini Power off");
+}
+
+void TonePlayer::printDetail(uint8_t type, int value){
+  switch (type) {
+    case TimeOut:
+      Serial.println(F("                    ---> Time Out!"));
+      break;
+    case WrongStack:
+      Serial.println(F("Stack Wrong!"));
+      break;
+    case DFPlayerCardInserted:
+      Serial.println(F("Card Inserted!"));
+      break;
+    case DFPlayerCardRemoved:
+      Serial.println(F("Card Removed!"));
+      break;
+    case DFPlayerCardOnline:
+      Serial.println(F("Card Online!"));
+      break;
+    case DFPlayerUSBInserted:
+      Serial.println("USB Inserted!");
+      break;
+    case DFPlayerUSBRemoved:
+      Serial.println("USB Removed!");
+      break;
+    case DFPlayerPlayFinished:
+      Serial.print(F("DFPlayerPlayFinished --> software detection"));
+      Serial.print(F("Number:"));
+      Serial.print(value);
+      Serial.println(F(" Play Finished!"));
+      break;
+    case DFPlayerError:
+      Serial.print(F("DFPlayerError:"));
+      switch (value) {
+        case Busy:
+          Serial.println(F("Card not found"));
+          break;
+        case Sleeping:
+          Serial.println(F("Sleeping"));
+          break;
+        case SerialWrongStack:
+          Serial.println(F("Get Wrong Stack"));
+          break;
+        case CheckSumNotMatch:
+          Serial.println(F("Check Sum Not Match"));
+          break;
+        case FileIndexOut:
+          Serial.println(F("File Index Out of Bound"));
+          break;
+        case FileMismatch:
+          Serial.println(F("Cannot Find File"));
+          break;
+        case Advertise:
+          Serial.println(F("In Advertise"));
+          break;
+        default:
+          break;
+      }
+      break;
+    default:
+      break;
+  }
 }

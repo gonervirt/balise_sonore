@@ -17,13 +17,15 @@
 #include "TonePlayer.h"
 #include "Config.h"
 #include "RadioMessageHandler.h"
+#include "Timer.h"
 
 
 #ifndef FIRMWARE_VERSION
 #define FIRMWARE_VERSION "development"
 #endif
 
-#define DISABLE_WIFI 1 
+//#define DISABLE_WIFI 0 
+
 
 #ifndef DISABLE_WIFI
 #include "wifi_manager.h"
@@ -41,7 +43,7 @@
     #define YELLOW_LED_PIN 1
     #define RED_LED_PIN 0
     #define TONE_PLAYER_POWER_PIN 9
-    #define DEFAULT_VOLUME 15
+    #define DEFAULT_VOLUME 5
 #elif defined(BOARD_ESP32)
     #define RXD2 17
     #define TXD2 18
@@ -75,33 +77,14 @@
 //  wifi_ssid, "BALISESONORE"
 //  wifi_password, "BaliseSonore_Betton_Mairie"
 
-// Add state machine enum
-enum AppState
-{
-    STARTING,
-    READY_WAITING,
-    PLAYING_TONE,
-    INHIBITED,
-    DESACTIVATED
-};
 
-// Add state machine variables after other defines
-#define STARTING_DURATION 30000 // 30 seconds for starting state
-#define INHIBIT_DURATION 10000  // 10 seconds for inhibit state
 
 // Initialize management objects
 Config config(DEFAULT_VOLUME); // Pass default volume to Config constructor
-
-#ifndef DISABLE_WIFI
-//WiFiManager wifiManager(config);
-WebServerManager *webServer;
-#endif
-
 TonePlayer tonePlayer(RXD2, TXD2, BUSY_PIN, TONE_PLAYER_POWER_PIN, config);  // Updated constructor call
-//PushButtonManager pushButtonManager(BUTTON_PIN);
 LedManager ledManager(GREEN_LED_PIN, YELLOW_LED_PIN, RED_LED_PIN);
-//RadioMessageHandler radioHandler(RADIO_PIN);
-
+Timer timer; // Timer for managing timeouts
+// Initialize input handler based on board type
 #ifdef BOARD_LOLIN_C3_MINI
 PushButtonManager inputHandler(BUTTON_PIN);
 #elif defined(BOARD_ESP32_S3)
@@ -111,6 +94,44 @@ RadioMessageHandler inputHandler(RADIO_PIN);
 #else
 #error "No input handler defined for this board"
 #endif
+#ifndef DISABLE_WIFI
+WiFiManager wifiManager(config);
+WebServerManager *webServer;
+Timer wifiLiveDurationTimer; // Timer for periodic WiFi checks
+const unsigned long WIFI_LIVE_DURATION = 120000; // 2 minutes 
+#endif
+
+// Add state machine enum
+enum AppState
+{
+    STARTING,
+    HOT_RESTART,
+   // COLD_RESTART,
+   // TONE_PLAYER_START_ERROR,
+    WELCOME_MESSAGE,
+    READY_WAITING,
+    PLAYING_TONE,
+    INHIBITED,
+  // CHECK_ALIVE,
+    DESACTIVATED
+};
+
+// Add helper to convert AppState to string
+const char* appStateToString(AppState s) {
+    switch (s) {
+        case STARTING: return "STARTING";
+        case HOT_RESTART: return "HOT_RESTART";
+     //   case COLD_RESTART: return "COLD_RESTART";
+     //   case TONE_PLAYER_START_ERROR: return "TONE_PLAYER_START_ERROR";
+        case WELCOME_MESSAGE: return "WELCOME_MESSAGE";
+        case READY_WAITING: return "READY_WAITING";
+        case PLAYING_TONE: return "PLAYING_TONE";
+        case INHIBITED: return "INHIBITED";
+     //   case CHECK_ALIVE: return "CHECK_ALIVE";
+        case DESACTIVATED: return "DESACTIVATED";
+        default: return "UNKNOWN";
+    }
+}
 
 // Add state machine variables
 AppState currentState = STARTING;
@@ -121,9 +142,52 @@ bool stateInitialized = false;
 unsigned long lastToneUpdateTime = 0;
 const unsigned long TONE_UPDATE_INTERVAL = 1000; // 1 second interval
 
+//AppState targetState; // Initialize next state
+
+// Add state machine variables after other defines
+#define STARTING_DURATION 10000 // 30 seconds for starting state
+#define MAX_PLAY_DURATION 20000 // 30 seconds for starting state
+#define INHIBIT_DURATION 10000  // 10 seconds for inhibit state
+#define CHECK_ALIVE_TIMER 120000 //7200000 // 2 hours for check alive state
+
 // Add after other global variables
 //unsigned long lastWifiCheckTime = 0;
 //const unsigned long WIFI_CHECK_INTERVAL = 5000; // Check every 5 seconds
+
+
+// Returns "[YYYY-MM-DD HH:MM:SS.mmm] "
+String timestamp() {
+    struct timeval tv; gettimeofday(&tv, nullptr);
+    struct tm t; localtime_r(&tv.tv_sec, &t);
+    char buf[32];
+    strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &t);
+    int ms = tv.tv_usec / 1000;
+    char out[40];
+    snprintf(out, sizeof(out), "[%s.%03d] ", buf, ms);
+    return String(out);
+}
+
+/**
+ * @brief Waits for an event to occur before transitioning to the next state.
+ *
+ * @param currentEvent The current application state.
+ * @param condition Function pointer to a function that returns true when the transition should occur.
+ * @param nextEvent The next application state to transition to.
+ */
+AppState waitEvent(AppState currentEvent, std::function<bool()> condition, AppState nextEvent) {
+    if (condition()) {
+        // wait event is met, transition to next state
+        Serial.print(timestamp());
+        Serial.printf("Event popped: Transitioning from %s to %s\n",
+                      appStateToString(currentEvent),
+                      appStateToString(nextEvent));
+        return nextEvent;
+    }
+    return currentEvent;
+}
+
+
+
 
 
 void setup()
@@ -133,63 +197,57 @@ void setup()
     Serial.printf("Version %s Compile time: %s %s\n", FIRMWARE_VERSION, __DATE__, __TIME__);
     Serial.println("Initializing components...");
 
-    //shutdown the tone player
-    tonePlayer.powerOff(); // Power off the player
-
+     // Initialize the led Manager
     ledManager.begin(); // Initialisation du gestionnaire de LEDs
+    ledManager.setGreen();
     Serial.println("LedManager initialized");
-
-    // Blinking green and yellow LEDs for 10 seconds
-    unsigned long startWaitTime = millis();
-    while (millis() - startWaitTime < 5000) {
-        ledManager.setGreen();
-        delay(500);
-        ledManager.setYellow();
-        delay(500);
-    }
-    //starting the tone player
-    tonePlayer.powerOn(); // Power on the player
-     // Blinking green and yellow LEDs for 10 seconds
-    startWaitTime = millis();
-     while (millis() - startWaitTime < 5000) {
-         ledManager.setGreen();
-         delay(500);
-         ledManager.off();
-         delay(500);
-     }
-    ledManager.setGreenYellow(); // Turn off LEDs after the wait period
-    
-
     // Initialize configuration
     config.begin(); 
-
-    #ifndef DISABLE_WIFI
-    // Initialize WiFi
-    WiFi.mode(WIFI_AP);
-    bool success = WiFi.softAP(config.getWifiSSID(), config.getWifiPassword());
-
-    // Initialize WebServerManager
-    webServer = new WebServerManager(config);
-    webServer->begin();
-    #endif
-
-
-    tonePlayer.begin(); // Initialisation du lecteur de tonalité
-    Serial.println("TonePlayer initialized");
-    ledManager.setGreen();
-
+    // Input handler initialization
     inputHandler.begin(); // Initialisation du gestionnaire de messages radio
     Serial.println("InputHandler initialized");
 
-    stateStartTime = millis(); // Initialize state timing
-    stateInitialized = false;
+    // Switch on the tone player  
+    tonePlayer.powerOn(); // Power on the player
+    //delay(2000); // Wait for the player to power on
+    tonePlayer.begin(); // Initialisation du lecteur de tonalité
+    Serial.println("TonePlayer powered on");
+    
+
+    #ifndef DISABLE_WIFI
+    // Initialize WiFi
+    wifiManager.begin();
+    Serial.println("WiFi initialized");
+    //WiFi.mode(WIFI_AP);
+    //bool success = WiFi.softAP(config.getWifiSSID(), config.getWifiPassword());
+    //Serial.println("Start Wifi Access Point : " + String(config.getWifiSSID()) + " / " + String(config.getWifiPassword()));
+
+    // Initialize WebServerManager
+    Serial.println("Start webServer");
+    delay(1000); // Wait a moment before starting the web server
+    webServer = new WebServerManager(config);
+    webServer->begin();
+    Serial.println("webServer started");
+    #endif
+
+
+    
+
+   
 }
 
 void loop()
 {
     #ifndef DISABLE_WIFI
     // Add at the beginning of the loop function
-    webServer->handleClient();
+    if (wifiManager.isAlive()) {
+        if (webServer->handleClient()){
+            // a web client was handled, reset timer before switch off wifi
+            // reset WiFi live duration timer
+            Serial.print("Web page handled, extending WiFi live duration\n");
+            wifiLiveDurationTimer.armTimer(WIFI_LIVE_DURATION);
+        };
+    }
     #endif
 
 
@@ -199,9 +257,79 @@ void loop()
     // State machine
     switch (currentState)
     {
-    case STARTING:
+
+        case STARTING:
+            Serial.print(timestamp());
+            Serial.println("State: STARTING");
+            currentState = WELCOME_MESSAGE; // Transition to START_TONE_PLAYER state
+            delay(4000); // Wait for 4 seconds before transitioning
+            tonePlayer.readMessage();
+            tonePlayer.adjustVolume(config.getVolume());  // Use volume from config
+            Serial.printf("Volume set to %d \n", config.getVolume());
+            tonePlayer.readMessage(); // Read the message from the player
+            //Serial.printf("Volume read from DFPlayer: %d\n", tonePlayer.readVolume());
+            #ifdef BOARD_LOLIN_C3_MINI
+            tonePlayer.enableDAC();
+            #endif
+            Serial.println(F("Player initialized"));
+            stateInitialized = false; // Reset state initialization flag
+            //targetState = COLD_RESTART;
+            #ifndef DISABLE_WIFI
+            // reset WiFi live duration timer
+            wifiLiveDurationTimer.armTimer(WIFI_LIVE_DURATION);
+            #endif
+            // next state
+            currentState = WELCOME_MESSAGE; // Transition to WELCOME_MESSAGE state
+            break;
+
+     //   case COLD_RESTART:
         /* Entry actions:
-         * - Play welcome message (tone 3)
+         * - Play WELCOME_MESSAGE message (tone 3)
+         *
+         * Recurring actions:
+         * - None
+         *
+         * Exit condition:
+         * - After 30 seconds (STARTING_DURATION)
+         * - Transitions to READY_WAITING
+         */
+    /*    if (!stateInitialized)
+        {
+            Serial.print(timestamp());
+            Serial.println("State: COLD_RESTART");
+            // Switch on the tone player  
+            tonePlayer.powerOn(); // Power on the player
+            delay(2000); // Wait for the player to power on
+            tonePlayer.begin(); // Initialisation du lecteur de tonalité
+            Serial.println("TonePlayer powered on");
+            //tonePlayer.powerOn(); // Reset the tone player
+            //tonePlayer.readMessage();
+            tonePlayer.adjustVolume(config.getVolume());  // Use volume from config
+            Serial.printf("Volume set to %d \n", config.getVolume());
+            //tonePlayer.readMessage(); // Read the message from the player
+            //Serial.printf("Volume read from DFPlayer: %d\n", tonePlayer.readVolume());
+            #ifdef BOARD_LOLIN_C3_MINI
+            tonePlayer.enableDAC();
+            #endif
+            Serial.println(F("Player initialized"));
+            stateInitialized = true;
+        }
+        
+        
+        currentState = waitEvent(currentState, [&]() { return  tonePlayer.available(); }, READY_WAITING);
+       
+        // wait for tone player not to be busy
+        //tonePlayer.reset(); // Reset the tone player
+        //delay(500); // Wait for the player to power on
+
+        if (currentState != COLD_RESTART) {stateInitialized = false;}
+        
+    break;
+    */
+
+    case HOT_RESTART:
+        /* Entry actions:
+         * - Play WELCOME_MESSAGE message (tone 3)
          *
          * Recurring actions:
          * - None
@@ -212,34 +340,81 @@ void loop()
          */
         if (!stateInitialized)
         {
-            Serial.println("State: STARTING");
+            Serial.print(timestamp());
+            Serial.println("State: HOT_RESTART");
+            tonePlayer.powerOn(); // Reset the tone player
+            tonePlayer.readMessage(); // Reset the tone player
+            stateInitialized = true;
+            timer.armTimer(STARTING_DURATION); // Set timer for 30 seconds
+            #ifndef DISABLE_WIFI
+            // reset WiFi live duration timer
+            wifiLiveDurationTimer.armTimer(WIFI_LIVE_DURATION);
+            if (!wifiManager.isAlive()) {
+                Serial.println("Wifi restarting Access Point...");
+                wifiManager.startAP();
+            } else {
+                Serial.println("Wifi is alive, skipping start AP");
+            }
+            #endif
+
+
+        }
+        
+        
+        currentState = waitEvent(currentState, [&]() { return  tonePlayer.available(); }, PLAYING_TONE);
+
+        // wait for tone player not to be busy
+        currentState = waitEvent(currentState, [&]() { return timer.checkTimer(); }, PLAYING_TONE);
+
+        // wait for tone player not to be busy
+        //tonePlayer.reset(); // Reset the tone player
+        //delay(500); // Wait for the player to power on
+
+        if (currentState != HOT_RESTART) {stateInitialized = false;}
+        
+    break;
+
+   /*
+     case TONE_PLAYER_START_ERROR:
+        Serial.print(timestamp());
+        Serial.println("State: TONE_PLAYER_START_ERROR");
+        tonePlayer.powerOff(); // Power off the player
+        delay(10000); // Wait for 1 second to ensure the player is off   
+        // If the tone player is not available, we cannot proceed
+        currentState =  COLD_RESTART;
+        stateInitialized = false;
+
+        break;
+*/
+
+    case WELCOME_MESSAGE:
+        /* Entry actions:
+         * - Play WELCOME_MESSAGE_MESSAGE message (tone 3)
+         *
+         * Recurring actions:
+         * - None
+         *
+         * Exit condition:
+         * - After 30 seconds (STARTING_DURATION)
+         * - Transitions to READY_WAITING
+         */
+        if (!stateInitialized)
+        {
+            Serial.print(timestamp());
+            Serial.println("State: WELCOME_MESSAGE");
             tonePlayer.playTone(4);
             ledManager.setYellow();
             stateInitialized = true;
+            timer.armTimer(MAX_PLAY_DURATION); // Set timer for 30 seconds
         }
 
-        // recurring
-        // webServer->handleClient();
-        // Rate-limited tone player update
-        if (millis() - lastToneUpdateTime >= TONE_UPDATE_INTERVAL)
-        {
-            tonePlayer.update();
-            lastToneUpdateTime = millis();
-
-            if (!tonePlayer.isPlaying())
-            {
-                currentState = READY_WAITING;
-                stateStartTime = millis();
-                stateInitialized = false;
-
-                if (millis() - stateStartTime >= STARTING_DURATION)
-                {
-                    currentState = READY_WAITING;
-                    stateStartTime = millis();
-                    stateInitialized = false;
-                }
-            }
-        }
+        // manage events
+        // wait for tone player to finish
+        currentState = waitEvent(currentState, [&]() { return ! tonePlayer.busy(); }, INHIBITED);
+        // watch dog timer
+        currentState = waitEvent(currentState, [&]() { return timer.checkTimer(); }, INHIBITED);
+        
+        if (currentState != WELCOME_MESSAGE) {stateInitialized = false;}
         break;
 
     case READY_WAITING:
@@ -255,21 +430,65 @@ void loop()
          */
         if (!stateInitialized)
         {
+            Serial.print(timestamp());
             Serial.println("State: READY_WAITING");
             ledManager.setGreen();
+            tonePlayer.readMessage(); // check if message still available
+            //targetState = PLAYING_TONE;
+            //timer.armTimer(CHECK_ALIVE_TIMER); // Set timer for 2 hourss
             stateInitialized = true;
         }
-        // recurring
+        // check if a input hanlder is ativated
         inputHandler.update();
-
-        if (inputHandler.isActivated())
-        {
-            currentState = PLAYING_TONE;
-            stateStartTime = millis();
-            stateInitialized = false;
-
+        // if event is activated, go to state HOT_RESTART
+        currentState = waitEvent(currentState, [&]() { return inputHandler.isActivated(); }, HOT_RESTART);
+        // stop the wifi after WIFI_LIVE_DURATION
+        if (wifiLiveDurationTimer.checkTimer()) {
+            wifiManager.stopAP();
         }
+        
+        if (currentState != READY_WAITING) {stateInitialized = false;}
+        /*
+        currentState = waitEvent(currentState, [&]() { return inputHandler.isActivated(); }, PLAYING_TONE);
+
+        if (currentState != READY_WAITING) {
+                // target new playing tone tone state but have to restart the tone player
+                
+                // enter sub state machine to restart the tone player
+                currentState = TONE_PLAYER_RESTART;
+                stateInitialized = false;}
+                */
         break;
+
+//    case CHECK_ALIVE:
+        /* Entry actions:
+         * - Set LED to yellow
+         * - Start playing configured message
+         *
+         * Recurring actions:
+         * - Check if tone has finished playing (rate limited to once per second)
+         *
+         * Exit condition:
+         * - Tone finishes playing
+         * - Transitions to INHIBITED
+         */
+    /*    if (!stateInitialized)
+        {
+            Serial.print(timestamp());
+            Serial.println("State: CHECK_ALIVE");
+            timer.armTimer(STARTING_DURATION); // Set timer for 2 hourss
+            stateInitialized = true;
+        }
+
+        // manage events
+        // wait for tone player to finish
+        currentState = waitEvent(currentState, [&]() { return tonePlayer.isAlive(); }, READY_WAITING);
+        // watch dog timer
+        currentState = waitEvent(currentState, [&]() { return timer.checkTimer(); }, TONE_PLAYER_START_ERROR);
+        
+        if (currentState != CHECK_ALIVE) {stateInitialized = false;}
+        break;
+*/
 
     case PLAYING_TONE:
         /* Entry actions:
@@ -285,30 +504,24 @@ void loop()
          */
         if (!stateInitialized)
         {
+            Serial.print(timestamp());
             Serial.println("State: PLAYING_TONE");
             ledManager.setYellow();
             tonePlayer.playTone(config.getNumeroMessage());
+            
+            timer.armTimer(MAX_PLAY_DURATION); // Set timer for 20 seconds
             stateInitialized = true;
-            lastToneUpdateTime = millis();
         }
 
-        // recurring
-        // webServer->handleClient();
-        // Rate-limited tone player update
-        if (millis() - lastToneUpdateTime >= TONE_UPDATE_INTERVAL)
-        {
-            tonePlayer.update();
-            lastToneUpdateTime = millis();
-
-            if (!tonePlayer.isPlaying())
-            {
-                currentState = INHIBITED;
-                tonePlayer.update();
-                stateStartTime = millis();
-                stateInitialized = false;
-            }
-        }
+        // manage events
+        // wait for tone player to finish
+        currentState = waitEvent(currentState, [&]() { return ! tonePlayer.busy(); }, INHIBITED);
+        // watch dog timer
+        currentState = waitEvent(currentState, [&]() { return timer.checkTimer(); }, INHIBITED);
+        
+        if (currentState != PLAYING_TONE) {stateInitialized = false;}
         break;
+
 
     case INHIBITED:
         /* Entry actions:
@@ -323,27 +536,21 @@ void loop()
          */
         if (!stateInitialized)
         {
+            Serial.print(timestamp());
             Serial.println("State: INHIBITED");
             ledManager.setGreenYellow();
             stateInitialized = true;
+            timer.armTimer(INHIBIT_DURATION); // Set timer for 10 seconds
+            //shutdown the tone player
+            tonePlayer.powerOff(); // Power off the player
+            tonePlayer.readMessage(); // Read the message from the player
+            tonePlayer.readMessage(); // Read the message from the player
         }
+        
+        // wait timer
+        currentState = waitEvent(currentState, [&]() { return timer.checkTimer(); }, READY_WAITING);
 
-        // recurring
-        // webServer->handleClient();
-        // Rate-limited tone player update
-        if (millis() - lastToneUpdateTime >= TONE_UPDATE_INTERVAL)
-        {
-            tonePlayer.update();
-            lastToneUpdateTime = millis();
-
-            if (millis() - stateStartTime >= INHIBIT_DURATION)
-            {
-                currentState = READY_WAITING;
-                inputHandler.resetActivation();
-                stateStartTime = millis();
-                stateInitialized = false;
-            }
-        }
+        if (currentState != INHIBITED) {inputHandler.resetActivation();stateInitialized = false;}
         break;
 
     case DESACTIVATED:
