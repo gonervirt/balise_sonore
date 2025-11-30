@@ -2,49 +2,36 @@
 
 ```mermaid
 stateDiagram-v2
-  direction TB
-
-  %% Startup
-  [*] --> STARTING
-  STARTING --> TONE_PLAYER_CONFIGURE: power on
-  note right of STARTING: Power On Player
-
-  TONE_PLAYER_CONFIGURE --> WELCOME_MESSAGE: configured
-  note right of TONE_PLAYER_CONFIGURE: Configure Player
-
-  WELCOME_MESSAGE --> READY_WAITING: welcome tone done / timeout
-  note right of WELCOME_MESSAGE: Play Tone 4 (Yellow LED)
-
-  %% Main vertical flow (primary column)
-  state MainFlow {
     direction TB
-    READY_WAITING --> HOT_RESTART: input (press)
-    note left of READY_WAITING: Idle (Green LED)
 
-    HOT_RESTART --> PLAYING_TONE: player available
-    note left of HOT_RESTART: Power On / Restart
+    %% Startup phase
+    [*] --> STARTING
+    STARTING --> WELCOME_MESSAGE: Initialization complete
+    note right of STARTING: Power on player\nSet volume from config\nEnable DAC
 
-    PLAYING_TONE --> INHIBITED: done / timeout
-    note right of PLAYING_TONE: Playing (Yellow LED)
+    WELCOME_MESSAGE --> READY_WAITING: Tone done / timeout
+    note right of WELCOME_MESSAGE: Play tone 4 Welcome\nYellow LED ON\nTimeout 20s
 
-    INHIBITED --> READY_WAITING: after 10s
-    note right of INHIBITED: Inhibited (Green+Yellow LED) \n Power Off Player
-  }
+    %% Main vertical flow (center column)
+    state MainFlow {
+        direction TB
 
-  %% Side flows
-  READY_WAITING --> CHECK_ALIVE: 2h timer (CHECK_ALIVE_TIMER)
-  note right of READY_WAITING: (timer active)
+        READY_WAITING --> HOT_RESTART: Input activated
+        note left of READY_WAITING: Idle\nGreen LED\nWiFi live 2min
 
-  CHECK_ALIVE --> READY_WAITING: player alive
-  CHECK_ALIVE --> TONE_PLAYER_START_ERROR: timeout
-  note right of CHECK_ALIVE: Health check (Yellow LED)
+        HOT_RESTART --> PLAYING_TONE: Player available
+        note left of HOT_RESTART: Power on player\nTimeout 10s
 
-  TONE_PLAYER_START_ERROR --> COLD_RESTART: retry/reset
-  note right of TONE_PLAYER_START_ERROR: Power Off Player
+        PLAYING_TONE --> INHIBITED: Tone done / timeout
+        note right of PLAYING_TONE: Yellow LED ON\nTimeout 20s
 
-  COLD_RESTART --> READY_WAITING: player available
-  COLD_RESTART --> TONE_PLAYER_START_ERROR: timeout
-  note right of COLD_RESTART: Cold restart (power cycle)
+        INHIBITED --> READY_WAITING: After 10s
+        note right of INHIBITED: Green+Yellow LED\nPower off player
+    }
 
-  DESACTIVATED --> [*]: shutdown
+    %% WiFi management (outside main flow)
+    READY_WAITING --> READY_WAITING: WiFi timeout 2min
+    
+    %% Terminal state
+    DESACTIVATED --> [*]: Shutdown
 ```
