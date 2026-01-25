@@ -1,3 +1,29 @@
+/**
+ * @file wifi_manager.cpp
+ * @brief Implementation of WiFi management logic
+ * 
+ * @copyright Copyright (c) 2024 ESP32 Balise Sonore Project
+ * 
+ * @license MIT License
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 #include "wifi_manager.h"
 #include "esp_event.h" // keep if you register esp events
 
@@ -35,6 +61,10 @@ WiFiManager::WiFiManager(Config &config) {
     _config = &config;
 }
 
+/**
+ * @brief Initializes the WiFi connection
+ * Starts either in Access Point mode or Station mode based on configuration.
+ */
 bool WiFiManager::begin() {
     if (isAP) {
         Serial.println("Starting Access Point mode...");
@@ -126,10 +156,16 @@ bool WiFiManager::begin() {
     }
 }
 
+/**
+ * @brief Checks if the WiFi manager is currently active/alive
+ */
 bool WiFiManager::isAlive() {
     return _isAlive;
 }
 
+/**
+ * @brief Stops the Access Point and turns off WiFi
+ */
 void WiFiManager::stopAP() {
   Serial.println("Stopping Access Point...");
   WiFi.softAPdisconnect(true);
@@ -139,6 +175,9 @@ void WiFiManager::stopAP() {
   _isAlive = false;
 }
 
+/**
+ * @brief Starts the Access Point with current configuration
+ */
 void WiFiManager::startAP() {
   Serial.println("\n[INFO] Starting Access Point...");
   if (_config != nullptr) { 
@@ -163,6 +202,9 @@ void WiFiManager::startAP() {
   }
 }
 
+/**
+ * @brief Gets the current IP address as a string
+ */
 String WiFiManager::getIP() {
     if (isAP) {
         return WiFi.softAPIP().toString();
@@ -170,6 +212,9 @@ String WiFiManager::getIP() {
     return WiFi.localIP().toString();
 }
 
+/**
+ * @brief Returns the current status of the WiFi connection
+ */
 WiFiManager::WifiStatus WiFiManager::checkStatus() {
     WifiStatus status;
     if (isAP) {
@@ -186,6 +231,9 @@ WiFiManager::WifiStatus WiFiManager::checkStatus() {
     return status;
 }
 
+/**
+ * @brief Checks if the AP has stations connected and restarts it if necessary/configured
+ */
 void WiFiManager::checkAndRestartAP() {
     if (!isAP) return;
     
@@ -198,6 +246,9 @@ void WiFiManager::checkAndRestartAP() {
     }
 }
 
+/**
+ * @brief Logs the AP status to Serial periodically
+ */
 void WiFiManager::logAPStatus() {
     if (!isAP) return;
 
@@ -209,6 +260,9 @@ void WiFiManager::logAPStatus() {
     }
 }
 
+/**
+ * @brief Main loop task for WiFi manager
+ */
 void WiFiManager::loop() {
     if (!isAP) return;
     
@@ -226,7 +280,9 @@ void WiFiManager::loop() {
     }
 }
 
-// Event handler for station connect/disconnect and other events
+/**
+ * @brief Event handler for low-level WiFi events (station connect/disconnect)
+ */
 void WiFiManager::event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
     if (event_id == WIFI_EVENT_AP_STACONNECTED) {
         wifi_event_ap_staconnected_t* event = (wifi_event_ap_staconnected_t*) event_data;
@@ -242,4 +298,3 @@ void WiFiManager::event_handler(void* arg, esp_event_base_t event_base, int32_t 
         Serial.println("Probe request received");
     }
 }
-

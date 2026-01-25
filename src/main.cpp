@@ -1,4 +1,5 @@
 /**
+ * @file main.cpp
  * ESP32 Balise Sonore
  *
  * Main program file that initializes and manages:
@@ -8,6 +9,28 @@
  *
  * The device can operate in either Access Point or Station mode
  * and provides a web interface for configuration.
+ * 
+ * @copyright Copyright (c) 2024 ESP32 Balise Sonore Project
+ * 
+ * @license MIT License
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 
 #include <Arduino.h>
@@ -190,6 +213,10 @@ AppState waitEvent(AppState currentEvent, std::function<bool()> condition, AppSt
 
 
 
+/**
+ * @brief Standard Arduino setup function
+ * Initializes serial, LEDs, config, input handlers, tone player, and WiFi/Webserver.
+ */
 void setup()
 {
     Serial.begin(115200);
@@ -236,6 +263,11 @@ void setup()
    
 }
 
+/**
+ * @brief Standard Arduino loop function
+ * Handles WiFi/Webserver tasks and executes the main application state machine.
+ * The state machine manages the flow from startup -> welcome -> waiting -> playing -> inhibited.
+ */
 void loop()
 {
     #ifndef DISABLE_WIFI
@@ -258,6 +290,9 @@ void loop()
     switch (currentState)
     {
 
+        // STARTING State:
+        // Initial state after boot.
+        // Transitions to WELCOME_MESSAGE after a delay and player initialization.
         case STARTING:
             Serial.print(timestamp());
             Serial.println("State: STARTING");
@@ -327,6 +362,9 @@ void loop()
     break;
     */
 
+    // HOT_RESTART State:
+    // Re-initializes the player and WiFi if needed without a full system reboot.
+    // Waits for the player to be available or a timeout before transitioning.
     case HOT_RESTART:
         /* Entry actions:
          * - Play WELCOME_MESSAGE message (tone 3)
@@ -387,6 +425,9 @@ void loop()
         break;
 */
 
+    // WELCOME_MESSAGE State:
+    // Plays the welcome tone (message 4) to indicate the system is up.
+    // Transitions to INHIBITED when playback finishes or times out.
     case WELCOME_MESSAGE:
         /* Entry actions:
          * - Play WELCOME_MESSAGE_MESSAGE message (tone 3)
@@ -417,6 +458,9 @@ void loop()
         if (currentState != WELCOME_MESSAGE) {stateInitialized = false;}
         break;
 
+    // READY_WAITING State:
+    // Idle state waiting for user input (button press or radio signal).
+    // Transitions to HOT_RESTART (which leads to PLAYING_TONE) upon activation.
     case READY_WAITING:
         /* Entry actions:
          * - Set LED to green
@@ -490,6 +534,9 @@ void loop()
         break;
 */
 
+    // PLAYING_TONE State:
+    // Plays the configured message number.
+    // Transitions to INHIBITED when playback finishes or times out.
     case PLAYING_TONE:
         /* Entry actions:
          * - Set LED to yellow
@@ -523,6 +570,9 @@ void loop()
         break;
 
 
+    // INHIBITED State:
+    // A refractory period after playing a tone where inputs are ignored.
+    // Transitions back to READY_WAITING after the duration expires.
     case INHIBITED:
         /* Entry actions:
          * - Set LED to red

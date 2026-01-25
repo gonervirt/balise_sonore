@@ -1,3 +1,29 @@
+/**
+ * @file web_server_manager.cpp
+ * @brief Implementation of the WebServerManager class
+ * 
+ * @copyright Copyright (c) 2024 ESP32 Balise Sonore Project
+ * 
+ * @license MIT License
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 #include "web_server_manager.h"
 
 #ifndef FIRMWARE_VERSION
@@ -8,6 +34,9 @@ WebServerManager::WebServerManager(Config& config, int port)
     : server(port), config(config) {
 }
 
+/**
+ * @brief Generates the common HTML header with navigation menu
+ */
 String WebServerManager::getHeader(const char* title) {
     String html = "<!DOCTYPE html><html><head>";
     html += "<title>" + String(title) + "</title>";
@@ -29,10 +58,16 @@ String WebServerManager::getHeader(const char* title) {
     return html;
 }
 
+/**
+ * @brief Generates the common HTML footer
+ */
 String WebServerManager::getFooter() {
     return "</body></html>";
 }
 
+/**
+ * @brief Helper to format a configuration item in HTML
+ */
 String WebServerManager::formatConfigItem(const char* label, const String& value) {
     return "<div class='config-item'><div class='config-label'>" + String(label) + 
            "</div><div class='config-value'>" + value + "</div></div>";
@@ -44,6 +79,10 @@ void WebServerManager::begin() {
     Serial.println("Web server started successfully");
 }
 
+/**
+ * @brief Handles incoming client requests
+ * @return true if a web page was served/handled
+ */
 bool WebServerManager::handleClient() {
     _webPageHandled = false;
     server.handleClient();
@@ -51,6 +90,9 @@ bool WebServerManager::handleClient() {
     return _webPageHandled;
 }
 
+/**
+ * @brief Sets up the HTTP routes and their callbacks
+ */
 void WebServerManager::setupRoutes() {
     Serial.println("Setting up web server routes...");
     server.on("/", [this]() { this->handleRoot(); });
@@ -66,6 +108,9 @@ void WebServerManager::setupRoutes() {
     Serial.println("Routes configured successfully");
 }
 
+/**
+ * @brief Handler for the root/home page
+ */
 void WebServerManager::handleRoot() {
     Serial.println("Handling root page request");
     _webPageHandled = true;
@@ -84,6 +129,9 @@ void WebServerManager::handleRoot() {
     server.send(200, "text/html", html);
 }
 
+/**
+ * @brief Handler for the WiFi configuration page
+ */
 void WebServerManager::handleWifiConfig() {
     Serial.println("Handling WiFi configuration page request");
     _webPageHandled = true;
@@ -119,6 +167,9 @@ void WebServerManager::handleWifiConfig() {
     server.send(200, "text/html", html);
 }
 
+/**
+ * @brief Handler for saving WiFi configuration
+ */
 void WebServerManager::handleWifiSave() {
     Serial.println("Processing WiFi configuration save");
     _webPageHandled = true;
@@ -155,6 +206,9 @@ void WebServerManager::handleWifiSave() {
     }
 }
 
+/**
+ * @brief Handler for the Message configuration page
+ */
 void WebServerManager::handleMessageConfig() {
     Serial.println("Handling message configuration page request");
     _webPageHandled = true;
@@ -262,6 +316,9 @@ void WebServerManager::handleMessageConfig() {
     server.send(200, "text/html", html);
 }
 
+/**
+ * @brief Handler for saving general message settings (active message, add/remove)
+ */
 void WebServerManager::handleMessageSave() {
     Serial.println("Processing message configuration save");
     _webPageHandled = true;
@@ -320,6 +377,9 @@ void WebServerManager::handleMessageSave() {
     }
 }
 
+/**
+ * @brief Handler for saving the text content of a specific message
+ */
 void WebServerManager::handleMessageTextSave() {
     Serial.println("Processing message text save");
     _webPageHandled = true;
@@ -351,6 +411,9 @@ void WebServerManager::handleMessageTextSave() {
     }
 }
 
+/**
+ * @brief Handler for saving volume settings
+ */
 void WebServerManager::handleVolumeSave() {
     _webPageHandled = true;
     if (server.hasArg("volume")) {
@@ -367,6 +430,9 @@ void WebServerManager::handleVolumeSave() {
     }
 }
 
+/**
+ * @brief Handler for the ESP32 system configuration page
+ */
 void WebServerManager::handleEsp32Config() {
     Serial.println("Handling ESP32 configuration page request");
     _webPageHandled = true;
@@ -395,6 +461,9 @@ void WebServerManager::handleEsp32Config() {
     server.send(200, "text/html", html);
 }
 
+/**
+ * @brief Handler for ESP32 system actions (reboot, clear config)
+ */
 void WebServerManager::handleEsp32Action() {
     _webPageHandled = true;
 
@@ -424,6 +493,9 @@ void WebServerManager::handleEsp32Action() {
     }
 }
 
+/**
+ * @brief Handler for 404 Not Found errors
+ */
 void WebServerManager::handleNotFound() {
     _webPageHandled = true;
     

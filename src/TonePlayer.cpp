@@ -1,3 +1,29 @@
+/**
+ * @file TonePlayer.cpp
+ * @brief Implementation of the TonePlayer class for managing DFPlayer Mini
+ * 
+ * @copyright Copyright (c) 2024 ESP32 Balise Sonore Project
+ * 
+ * @license MIT License
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 #include <SoftwareSerial.h>
 #include "TonePlayer.h"
 #include "Arduino.h"
@@ -57,19 +83,33 @@ void TonePlayer::begin() {
     Serial.println(F("DF player begin completed."));
     }
 
+/**
+ * @brief Enables the DAC on the DFPlayer
+ */
 void TonePlayer::enableDAC() {  
     myMP3player.enableDAC();  // Enable DAC output
     Serial.println(F("DAC enabled"));
 }
 
+/**
+ * @brief Reads the current volume from the DFPlayer
+ * @return The current volume level (0-30)
+ */
 int TonePlayer::readVolume() {  
     return myMP3player.readVolume  ();  // read current volume
 }
 
+/**
+ * @brief Resets the DFPlayer module
+ */
 void TonePlayer::reset() {  
     return myMP3player.reset  ();  // reset
 }
 
+/**
+ * @brief Startup sequence for the player
+ * Reads initial messages, sets timeouts, and applies volume configuration.
+ */
 void TonePlayer::startup() {
     //delay(3000);
     //myMP3player.reset();
@@ -92,6 +132,10 @@ void TonePlayer::startup() {
 
 }
 
+/**
+ * @brief Reads available messages from the DFPlayer serial interface
+ * Prints details of the message if available.
+ */
 void TonePlayer::readMessage() {
     if (myMP3player.available()) {
         printDetail(myMP3player.readType(), myMP3player.read()); //Print the detail message from DFPlayer to handle different errors and states.
@@ -101,16 +145,28 @@ void TonePlayer::readMessage() {
     }
 }
 
+/**
+ * @brief Checks if the player is responsive
+ * @return true if the player responds to commands
+ */
 bool TonePlayer::isAlive() {
     // Try to read current volume as a health check
     int vol = myMP3player.readVolume();
     return myMP3player.available();
 }
 
+/**
+ * @brief Checks if data is available from the player
+ * @return true if data is available
+ */
 bool TonePlayer::available() {
     return myMP3player.available();
 } 
 
+/**
+ * @brief Checks if data is available, ignoring TimeOut messages
+ * @return true if a non-timeout message is available
+ */
 bool TonePlayer::availableExceptTimeOut() {
     if (myMP3player.available())
       {
@@ -182,6 +238,9 @@ void TonePlayer::update() {
     }
 }
 
+/**
+ * @brief Checks if the volume configuration has changed and updates the player
+ */
 void TonePlayer::checkVolumeChange()
 {
     uint8_t currentConfigVolume = config.getVolume();
@@ -192,26 +251,43 @@ void TonePlayer::checkVolumeChange()
     }
 }
 
+/**
+ * @brief Sets the volume on the DFPlayer
+ * @param volume The volume level (0-30)
+ */
 void TonePlayer::adjustVolume(int volume) {
     lastConfigVolume = volume;  // Update the tracking variable
     myMP3player.volume(volume);
 }
 
 
+/**
+ * @brief Returns the internal playing state
+ * @return true if the class considers itself playing
+ */
 bool TonePlayer::isPlaying() const {
     return playing;
 }
 
+/**
+ * @brief Powers on the DFPlayer module via the power pin
+ */
 void TonePlayer::powerOn() const {
     digitalWrite(powerPin, HIGH);  // Power on the player
     Serial.println("DF mini Power on");
 }
 
+/**
+ * @brief Powers off the DFPlayer module via the power pin
+ */
 void TonePlayer::powerOff() const {
     digitalWrite(powerPin, LOW);  // Power off the player
     Serial.println("DF mini Power off");
 }
 
+/**
+ * @brief Prints detailed debug information based on DFPlayer message types
+ */
 void TonePlayer::printDetail(uint8_t type, int value){
   switch (type) {
     case TimeOut:

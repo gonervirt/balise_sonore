@@ -1,3 +1,29 @@
+/**
+ * @file RadioMessageHandler.cpp
+ * @brief Implementation of the RadioMessageHandler class
+ * 
+ * @copyright Copyright (c) 2024 ESP32 Balise Sonore Project
+ * 
+ * @license MIT License
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 #include "RadioMessageHandler.h"
 
 // Static member initializations
@@ -27,6 +53,8 @@ void RadioMessageHandler::begin() {
 
 /**
  * @brief Interrupt Service Routine (ISR) for handling pin change interrupts
+ * Calculates the time interval between interrupts and stores it in a circular buffer.
+ * This captures the pulse widths of the incoming radio signal.
  */
 void IRAM_ATTR RadioMessageHandler::onInterrupt() {
     if (instance) {
@@ -57,6 +85,7 @@ bool RadioMessageHandler::matchTiming(unsigned long timing, float expected) cons
 
 /**
  * @brief Matches the pattern starting from the given index in the buffer
+ * Verifies if the sequence of intervals in the buffer matches the predefined NFS32-002 pattern.
  * @param startIndex The starting index in the buffer
  * @return True if the complete pattern matches, false otherwise
  */
@@ -83,6 +112,7 @@ bool RadioMessageHandler::matchPattern(int startIndex) const {
 
 /**
  * @brief Updates the state by checking for valid patterns in the buffer
+ * Scans the circular buffer for the sync pulse and subsequent pattern to detect a valid message.
  */
 void RadioMessageHandler::update() {
     if (messageReceived) {

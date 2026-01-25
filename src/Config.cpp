@@ -1,3 +1,29 @@
+/**
+ * @file Config.cpp
+ * @brief Implementation of the Config class for persistent storage
+ * 
+ * @copyright Copyright (c) 2024 ESP32 Balise Sonore Project
+ * 
+ * @license MIT License
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 #include "Config.h"
 #include "Arduino.h"
 #include <LittleFS.h>
@@ -21,7 +47,10 @@ Config::Config(int defaultVolume) : _defaultVolume(defaultVolume) {
     volume = _defaultVolume;  // Default volume
 }
 
-// Initialisation de la configuration
+/**
+ * @brief Initializes the configuration system
+ * Mounts the LittleFS file system and loads the configuration file.
+ */
 void Config::begin() {
     Serial.println("Initializing configuration system...");
     
@@ -46,7 +75,10 @@ void Config::begin() {
     }
 }
 
-// Chargement de la configuration depuis la mémoire non volatile
+/**
+ * @brief Loads configuration from the JSON file
+ * Parses the JSON and updates internal member variables.
+ */
 void Config::loadConfig() {
     JsonDocument doc;
     
@@ -80,7 +112,10 @@ void Config::loadConfig() {
     volume = doc["volume"] | _defaultVolume;  // Load volume setting
 }
 
-// Sauvegarde de la configuration dans la mémoire non volatile
+/**
+ * @brief Saves current configuration to the JSON file
+ * Serializes internal member variables to JSON and writes to storage.
+ */
 void Config::saveConfig() {
     JsonDocument doc;
 
@@ -112,6 +147,9 @@ void Config::saveConfig() {
     }
 }
 
+/**
+ * @brief Helper to load JSON from the config file
+ */
 bool Config::loadJsonFromFile(JsonDocument& doc) {
     if (!LittleFS.exists(CONFIG_FILE)) {
         Serial.println("Configuration file not found");
@@ -136,6 +174,9 @@ bool Config::loadJsonFromFile(JsonDocument& doc) {
     return true;
 }
 
+/**
+ * @brief Helper to save JSON to the config file
+ */
 bool Config::saveJsonToFile(const JsonDocument& doc) {
     File file = LittleFS.open(CONFIG_FILE, "w");
     if (!file) {
