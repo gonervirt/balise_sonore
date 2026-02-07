@@ -68,18 +68,12 @@ void TonePlayer::begin() {
         return;
     }
     serial2player->begin(9600);
-    myMP3player.setTimeOut(1000);
+    //myMP3player.setTimeOut(1000);
     myMP3player.begin(*serial2player, /*isACK = */false, /*doReset = */true);
     readMessage();  // Read initial message from DFPlayer
-    //myMP3player.setTimeOut(500);
-    //Serial.println(F("Waiting DF player"));
-    /*
-    delay(5000);
-    myMP3player.reset();
-    delay(10000);
-
-    readMessage();
-    */
+    myMP3player.setTimeOut(500);
+    Serial.println(F("Waiting DF player"));
+    startup();  
     Serial.println(F("DF player begin completed."));
     }
 
@@ -111,25 +105,19 @@ void TonePlayer::reset() {
  * Reads initial messages, sets timeouts, and applies volume configuration.
  */
 void TonePlayer::startup() {
-    //delay(3000);
-    //myMP3player.reset();
-    //delay(10000);
 
     readMessage();
     int vol = myMP3player.readVolume();
-    Serial.printf("Volume read from DFPlayer: %d\n", vol);
-    readMessage();
-    //Serial.printf("waitAvailable");
-    //myMP3player.waitAvailable(1000); // Wait for DFPlayer to be ready
-    myMP3player.setTimeOut(500); //Set serial communictaion time out 500ms
-    //myMP3player.enableDAC();
-    adjustVolume(config.getVolume());  // Use volume from config
-    Serial.printf("Volume set to %d \n", config.getVolume());
+    Serial.printf("Current volume read from DFPlayer: %d  value from config (%d)\n", vol, config.getVolume());
+   // readMessage();
+    checkVolumeChange();  // Ensure volume is set according to config at startup
+   // myMP3player.setTimeOut(500); //Set serial communictaion time out 500ms
+   // adjustVolume(config.getVolume());  // Use volume from config
+   // Serial.printf("Volume set to %d \n", config.getVolume());
     vol = myMP3player.readVolume();
     Serial.printf("Volume read from DFPlayer: %d\n", vol);
-    Serial.println(F("Player initialized"));
-    //myMP3player.play(4);
 
+    Serial.println(F("Player initialized"));
 }
 
 /**
@@ -222,20 +210,6 @@ bool TonePlayer::busy() {
 void TonePlayer::update() {   
     // Check volume changes at the start of update
     checkVolumeChange();
-    
-    // Check if playback finished
-    if (busy()) {
-        playing = false;
-        return;
-    }
-
-    // Timeout check as fallback
-    if (millis() - playStartTime >= PLAY_TIMEOUT) {
-        Serial.println("Tone timeout - forcing stop");
-        myMP3player.stop();  // Force stop
-        playing = false;
-        return;
-    }
 }
 
 /**
@@ -256,8 +230,11 @@ void TonePlayer::checkVolumeChange()
  * @param volume The volume level (0-30)
  */
 void TonePlayer::adjustVolume(int volume) {
-    lastConfigVolume = volume;  // Update the tracking variable
-    myMP3player.volume(volume);
+    int v = constrain(volume, 0, 30);
+    lastConfigVolume = v;  // Update the tracking variable
+    myMP3player.volume(v);
+    delay(500);  // Short delay to ensure command is processed
+    readMessage();  // Read initial message from DFPlayer
 }
 
 

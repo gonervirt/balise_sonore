@@ -218,9 +218,13 @@ void setup()
     ledManager.begin(); // Initialisation du gestionnaire de LEDs
     ledManager.setGreen();
     Serial.println("LedManager initialized");
+
+
     // Initialize configuration
     config.begin(); 
     
+
+
     #ifndef DISABLE_WIFI
     // Initialize WiFi
     wifiManager.begin();
@@ -239,29 +243,13 @@ void setup()
     inputHandler.begin(); // Initialisation du gestionnaire de messages radio
     Serial.println("InputHandler initialized");
 
+
+
     // Switch on the tone player  
     tonePlayer.powerOn(); // Power on the player
     delay(3000); // Wait for the player to power on
     tonePlayer.begin(); // Initialisation du lecteur de tonalité
     Serial.println("TonePlayer powered on");
-    
-
-    #ifndef DISABLE_WIFI
-    // Initialize WiFi
-    wifiManager.begin();
-    Serial.println("WiFi initialized");
-   
-    // Initialize WebServerManager
-    Serial.println("Start webServer");
-    delay(1000); // Wait a moment before starting the web server
-    webServer = new WebServerManager(config);
-    webServer->begin();
-    Serial.println("webServer started");
-    #endif
-
-
-    
-
    
 }
 
@@ -296,17 +284,10 @@ void loop()
             Serial.print(timestamp());
             Serial.println("State: STARTING");
             currentState = WELCOME_MESSAGE; // Transition to START_TONE_PLAYER state
-            delay(4000); // Wait for 4 seconds before transitioning
-            tonePlayer.readMessage();
-            tonePlayer.adjustVolume(config.getVolume());  // Use volume from config
-            Serial.printf("Volume set to %d \n", config.getVolume());
-            tonePlayer.readMessage(); // Read the message from the player
             #ifdef BOARD_LOLIN_C3_MINI
             tonePlayer.enableDAC();
             #endif
-            Serial.println(F("Player initialized"));
             stateInitialized = false; // Reset state initialization flag
-            //targetState = COLD_RESTART;
             #ifndef DISABLE_WIFI
             // reset WiFi live duration timer
             wifiLiveDurationTimer.armTimer(WIFI_LIVE_DURATION);
@@ -425,6 +406,7 @@ void loop()
         }
         // check if a input hanlder is ativated
         inputHandler.update();
+        tonePlayer.update(); // update sound player volume if needed
         // if event is activated, go to state HOT_RESTART
         currentState = waitEvent(currentState, [&]() { return inputHandler.isActivated(); }, HOT_RESTART);
         // stop the wifi after WIFI_LIVE_DURATION
