@@ -65,6 +65,9 @@ void Config::begin() {
         Serial.println("LittleFS mounted successfully");
     }
     
+    printConfigFile();  // Print the content of the config file for debugging
+
+
     // Create config file if it doesn't exist
     if (!LittleFS.exists(CONFIG_FILE)) {
         Serial.println("No configuration file found, creating default...");
@@ -73,6 +76,8 @@ void Config::begin() {
         Serial.println("Loading existing configuration...");
         loadConfig();
     }
+
+    printConfig();  // Print loaded configuration for verification
 }
 
 /**
@@ -295,4 +300,44 @@ uint8_t Config::getVolume() const {
 void Config::setVolume(uint8_t vol) {
     volume = constrain(vol, 0, 30);
     saveConfig();
+}
+
+void Config::printConfigFile() {
+    if (!LittleFS.exists(CONFIG_FILE)) {
+        Serial.println(F("Config file not found"));
+        return;
+    }
+
+    File file = LittleFS.open(CONFIG_FILE, "r");
+    if (!file) {
+        Serial.println(F("Failed to open config file"));
+        return;
+    }
+
+    Serial.println(F("--- CONFIG FILE CONTENT ---"));
+    while (file.available()) {
+        Serial.write(file.read());
+    }
+    Serial.println(F("\n---------------------------"));
+    file.close();
+}
+
+void Config::printConfig() {
+    Serial.println(F("--- CURRENT CONFIGURATION ---"));
+    Serial.printf("WiFi SSID: %s\n", wifi_ssid);
+    Serial.printf("WiFi Password: %s\n", wifi_password);
+    Serial.printf("Mode: %s\n", access_point ? "Access Point" : "Station");
+    Serial.printf("Channel: %d\n", wifi_channel);
+    Serial.printf("Hidden SSID: %s\n", hidden_ssid ? "Yes" : "No");
+    Serial.printf("Volume: %d\n", volume);
+    Serial.printf("Active Message: %d\n", numeroMessage);
+    Serial.printf("Message Count: %d\n", message_count);
+    
+    Serial.println(F("Messages:"));
+    for(int i = 0; i < message_count; i++) {
+        if (message_defined[i]) {
+            Serial.printf("  %d: %s\n", i + 1, messages[i]);
+        }
+    }
+    Serial.println(F("-----------------------------"));
 }

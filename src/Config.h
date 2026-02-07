@@ -117,6 +117,12 @@ public:
     uint8_t getVolume() const;
     void setVolume(uint8_t vol);
 
+    /** Print the content of the configuration file to Serial */
+    void printConfigFile();
+
+    /** Print current configuration values to Serial */
+    void printConfig();
+
 private:
     int numeroMessage;
     char wifi_ssid[32];

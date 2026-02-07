@@ -66,6 +66,13 @@ WiFiManager::WiFiManager(Config &config) {
  * Starts either in Access Point mode or Station mode based on configuration.
  */
 bool WiFiManager::begin() {
+    if (_config != nullptr) {   
+        this->ssid = String(_config->getWifiSSID());
+        this->password = String(_config->getWifiPassword());
+        this->isAP = _config->isAccessPoint();
+        this->channel = _config->getWifiChannel();
+        this->hidden_ssid = _config->isHiddenSSID();
+    }
     if (isAP) {
         Serial.println("Starting Access Point mode...");
         WiFi.mode(WIFI_AP);
