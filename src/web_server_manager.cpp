@@ -212,46 +212,27 @@ void WebServerManager::handleMessageConfig() {
     String html = getHeader("Configuration des Messages");
     
     html += "<div class='config-section'>";
-    html += "<h2>Paramètres du Message Actuel</h2>";
-    html += formatConfigItem("Message Actif", String(config.getNumeroMessage()));
-    html += formatConfigItem("Texte du Message Actif", config.getMessageText(config.getNumeroMessage()));
+    html += "<h2>Paramètres du message actuel</h2>";
+    html += formatConfigItem("Message actif", String(config.getNumeroMessage()));
+    html += formatConfigItem("Texte du Message actif", config.getMessageText(config.getNumeroMessage()));
     html += "</div>";
 
     // Add CSS for radio button styling and button container
     html += "<style>"
-            ".msg-container { margin: 10px 0; }"
-            ".msg-radio { display: none; }"
-            ".msg-label { display: block; padding: 10px; background: #f0f0f0; cursor: pointer; }"
-            ".msg-radio:checked + .msg-label { background: #b0e0e6; }"
-            ".button-container { margin: 20px 0; display: flex; justify-content: space-between; }"
-            ".button-group { display: flex; gap: 10px; }"
+            ".msg-row { display: flex; align-items: center; margin: 5px 0; padding: 5px; background: #f9f9f9; border-radius: 4px; }"
+            ".msg-radio { margin-right: 10px; }"
+            ".msg-index { font-weight: bold; margin-right: 10px; min-width: 20px; }"
+            ".msg-input { flex-grow: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }"
+            ".msg-input.changed { background-color: #fff3cd; border-color: #ffc107; }"
+            ".button-container { margin: 20px 0; display: flex; flex-wrap: wrap; gap: 10px; }"
             "</style>";
 
     // Updated JavaScript for message selection handling
     html += "<script>"
-            "let selectedMessageNum = " + String(config.getNumeroMessage()) + ";"
-            "function updateMessageText(messageNum) {"
-            "  selectedMessageNum = messageNum;"
-            "  const label = document.querySelector(`label[for='msg${messageNum}']`);"
-            "  if (label) {"
-            "    const text = label.textContent.split(': ')[1];"
-            "    document.getElementById('messageText').value = text;"
-            "    document.getElementById('messageNumber').value = messageNum;"
-            "  }"
+            "function markChanged(input) {"
+            "  input.classList.add('changed');"
             "}"
-            "document.addEventListener('DOMContentLoaded', function() {"
-            "  const radios = document.getElementsByName('messageNum');"
-            "  for(let radio of radios) {"
-            "    radio.addEventListener('change', function() {"
-            "      updateMessageText(this.value);"
-            "    });"
-            "  }"
-            "  // Set initial text based on selected radio button"
-            "  const selected = document.querySelector('input[name=\"messageNum\"]:checked');"
-            "  if(selected) {"
-            "    updateMessageText(selected.value);"
-            "  }"
-            "});</script>";
+            "</script>";
 
     // Message selection with radio buttons and action buttons
     html += "<div class='config-section'>";
@@ -260,39 +241,23 @@ void WebServerManager::handleMessageConfig() {
     
     // Message list with radio buttons
     for(int i = 1; i <= config.getMessageCount(); i++) {
-        if (String(config.getMessageText(i)).length() > 0) {  // Only show non-empty messages
-            html += "<div class='msg-container'>";
-            html += "<input type='radio' class='msg-radio' name='messageNum' value='" + 
-                    String(i) + "' id='msg" + String(i) + "' " +
-                    (config.getNumeroMessage() == i ? "checked" : "") + ">";
-            html += "<label class='msg-label' for='msg" + String(i) + "'>";
-            html += "Message " + String(i) + ": " + String(config.getMessageText(i));
-            html += "</label></div>";
-        }
+        html += "<div class='msg-row'>";
+        html += "<input type='radio' class='msg-radio' name='messageNum' value='" + String(i) + "' " + 
+                (config.getNumeroMessage() == i ? "checked" : "") + ">";
+        html += "<span class='msg-index'>" + String(i) + "</span>";
+        html += "<input type='text' class='msg-input' name='text_" + String(i) + "' " +
+                "value='" + String(config.getMessageText(i)) + "' " +
+                "oninput='markChanged(this)'>";
+        html += "</div>";
     }
 
     // Button container with groups
     html += "<div class='button-container'>";
-    html += "<div class='button-group'>";
-    html += "<button type='submit' name='action' value='setActive' class='btn'>Définir comme Actif</button>";
+    html += "<button type='submit' name='action' value='setActive' class='btn'>Définir comme actif</button>";
+    html += "<button type='submit' name='action' value='saveTexts' class='btn'>Sauvegarder la description des messages</button>";
+    html += "<button type='submit' name='action' value='add' class='btn'>Ajouter un message</button>";
+    html += "<button type='submit' name='action' value='remove' class='btn' onclick='return confirm(\"Supprimer ?\")'>Supprimer la sélection</button>";
     html += "</div>";
-    html += "<div class='button-group'>";
-    html += "<button type='submit' name='action' value='add' class='btn'>Ajouter un Message</button>";
-    html += "<button type='submit' name='action' value='remove' class='btn'>Supprimer la Sélection</button>";
-    html += "</div>";
-    html += "</div>";
-    html += "</form>";
-    html += "</div>";
-
-    // Updated message text editing section
-    html += "<div class='config-section'>";
-    html += "<h2>Modifier le Message Sélectionné</h2>";
-    html += "<form action='/message-text-save' method='post'>";
-    html += "<input type='hidden' id='messageNumber' name='number' value='" + 
-            String(config.getNumeroMessage()) + "'>";
-    html += "<textarea id='messageText' name='text' rows='2' cols='40' "
-            "placeholder='Sélectionnez un message à modifier'></textarea><br>";
-    html += "<input type='submit' value='Enregistrer le Message' class='btn'>";
     html += "</form>";
     html += "</div>";
 
@@ -319,14 +284,12 @@ void WebServerManager::handleMessageSave() {
     Serial.println("Processing message configuration save");
     _webPageHandled = true;
 
-    if (server.hasArg("messageNum")) {
-        int messageNum = server.arg("messageNum").toInt();
-        
-        if (server.hasArg("action")) {
-            String action = server.arg("action");
-            Serial.printf("Message action: %s\n", action.c_str());
+    if (server.hasArg("action")) {
+        String action = server.arg("action");
+        int messageNum = server.hasArg("messageNum") ? server.arg("messageNum").toInt() : -1;
+        Serial.printf("Message action: %s\n", action.c_str());
             
-            if (action == "setActive") {
+        if (action == "setActive" && messageNum != -1) {
                 // Set active message
                 if (messageNum >= 1 && messageNum <= config.getMessageCount()) {
                     Serial.printf("Setting active message to %d\n", messageNum);
@@ -338,8 +301,8 @@ void WebServerManager::handleMessageSave() {
                     server.send(400, "text/plain", "Invalid message number");
                     return;
                 }
-            }
-            else if (action == "remove" && messageNum >= 1) {
+        }
+        else if (action == "remove" && messageNum >= 1) {
                 // Remove message and shift others up
                 for (int i = messageNum; i < config.getMessageCount(); i++) {
                     config.setMessageText(i, config.getMessageText(i + 1));
@@ -347,7 +310,7 @@ void WebServerManager::handleMessageSave() {
                 config.removeLatestMessage();  // Decrement message count
                 config.saveConfig();  // Ensure changes are saved
                 
-            } else if (action == "add") {
+        } else if (action == "add") {
                 // Add new message at next available index
                 int currentCount = config.getMessageCount();
                 int newIndex = currentCount + 1;
@@ -361,6 +324,17 @@ void WebServerManager::handleMessageSave() {
                     Serial.println("Failed to add new message");
                     server.send(500, "text/plain", "Failed to add message");
                     return;
+                }
+        } else if (action == "saveTexts") {
+            int count = config.getMessageCount();
+            for (int i = 1; i <= count; i++) {
+                String argName = "text_" + String(i);
+                if (server.hasArg(argName)) {
+                    String newText = server.arg(argName);
+                    String currentText = String(config.getMessageText(i));
+                    if (newText != currentText) {
+                        config.setMessageText(i, newText.c_str());
+                    }
                 }
             }
         }

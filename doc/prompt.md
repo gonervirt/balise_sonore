@@ -11,3 +11,5 @@ Could you simplify RadioMessageHanlder class. onInterrup() should only store end
 
 
 As a senior software developper, who needs to document existing code, could you update all files in the src directory to add comments in describing, describing and explaining the logic. MIT licence note must be added in each file. The code must not be mmodified.
+
+peux tu modifier le comportement des gestion des messages sur la page web "configuration des messages" : pour chaque message indique l'index, puis dans une box editable le text defini pour cet index. Une modification du texte le fera chnage de couleur. et un bouton supplemenatire devra etre ajouter pour sauvegradre les modifcations de texte dans le fichier de configuration . la partie modfier le message devient intutile et doit etre supprimer.
