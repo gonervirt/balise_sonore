@@ -133,17 +133,20 @@ void Config::saveConfig() {
 
     // Save message settings
     doc["numeroMessage"] = numeroMessage;
-    doc["message_count"] = message_count;
 
     // Save messages using newer API
     JsonArray messages_array = doc["messages"].to<JsonArray>();
+    int id_counter = 1;
     for (int i = 0; i < message_count; i++) {
         if (message_defined[i]) {
             JsonObject msg = messages_array.add<JsonObject>();
-            msg["id"] = i + 1;
+            msg["id"] = id_counter++;
             msg["text"] = messages[i];
         }
     }
+
+    // Ensure message_count matches the actual number of sequential IDs
+    doc["message_count"] = id_counter - 1;
 
     doc["volume"] = volume;
 

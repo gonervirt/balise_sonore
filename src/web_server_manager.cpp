@@ -52,10 +52,10 @@ String WebServerManager::getHeader(const char* title) {
             "</style>";
     html += "</head><body>";
     html += "<h1>" + String(title) + "</h1>";
-    html += "<nav><a href='/' class='btn'>Home</a> ";
-    html += "<a href='/wifi' class='btn'>WiFi Config</a> ";
-    html += "<a href='/message' class='btn'>Message Config</a> ";
-    html += "<a href='/esp32' class='btn'>ESP32 Config</a></nav><br>";
+    html += "<nav><a href='/' class='btn'>Accueil</a> ";
+    html += "<a href='/wifi' class='btn'>Config WiFi</a> ";
+    html += "<a href='/message' class='btn'>Config Messages</a> ";
+    html += "<a href='/esp32' class='btn'>Config ESP32</a></nav><br>";
     return html;
 }
 
@@ -119,11 +119,11 @@ void WebServerManager::handleRoot() {
     String html = getHeader("Portail balise sonore");
     
     html += "<div class='config-section'>";
-    html += "<h2>Current Configuration</h2>";
-    html += formatConfigItem("WiFi Mode", config.isAccessPoint() ? "Access Point" : "Station");
+    html += "<h2>Configuration Actuelle</h2>";
+    html += formatConfigItem("Mode WiFi", config.isAccessPoint() ? "Point d'Accès" : "Station");
     html += formatConfigItem("SSID", config.getWifiSSID());
-    html += formatConfigItem("Active Message", String(config.getNumeroMessage()));
-    html += formatConfigItem("Message Text", config.getMessageText(config.getNumeroMessage()));
+    html += formatConfigItem("Message Actif", String(config.getNumeroMessage()));
+    html += formatConfigItem("Texte du Message", config.getMessageText(config.getNumeroMessage()));
     html += "</div>";
     
     html += getFooter();
@@ -137,30 +137,25 @@ void WebServerManager::handleWifiConfig() {
     Serial.println("Handling WiFi configuration page request");
     _webPageHandled = true;
 
-    String html = getHeader("WiFi Configuration");
+    String html = getHeader("Configuration WiFi");
     
     html += "<div class='config-section'>";
-    html += "<h2>Current WiFi Settings</h2>";
-    html += formatConfigItem("Current Mode", config.isAccessPoint() ? "Access Point" : "Station");
-    html += formatConfigItem("Current SSID", config.getWifiSSID());
-    html += formatConfigItem("Current Channel", String(config.getWifiChannel()));
-    html += formatConfigItem("SSID Hidden", config.isHiddenSSID() ? "Yes" : "No");
+    html += "<h2>Paramètres WiFi Actuels</h2>";
+    html += formatConfigItem("SSID Actuel", config.getWifiSSID());
+    html += formatConfigItem("Canal Actuel", String(config.getWifiChannel()));
+    html += formatConfigItem("SSID Masqué", config.isHiddenSSID() ? "Oui" : "Non");
     html += "</div>";
 
     html += "<div class='config-section'>";
-    html += "<h2>Update WiFi Settings</h2>";
+    html += "<h2>Mettre à jour les paramètres WiFi</h2>";
     html += "<form action='/wifi-save' method='post'>";
-    html += "SSID: <input type='text' name='ssid' value='" + String(config.getWifiSSID()) + "'><br><br>";
-    html += "Password: <input type='password' name='password'><br><br>";
-    html += "Mode: <select name='mode'>";
-    html += "<option value='1' " + String(config.isAccessPoint() ? "selected" : "") + ">Access Point</option>";
-    html += "<option value='0' " + String(!config.isAccessPoint() ? "selected" : "") + ">Station</option>";
-    html += "</select><br><br>";
-    html += "Channel (1-13): <input type='number' name='channel' min='1' max='13' value='" + 
+    html += "SSID : <input type='text' name='ssid' value='" + String(config.getWifiSSID()) + "'><br><br>";
+    html += "Mot de passe : <input type='text' name='password' value='" + String(config.getWifiPassword()) + "'><br><br>";
+    html += "Canal (1-13) : <input type='number' name='channel' min='1' max='13' value='" + 
             String(config.getWifiChannel()) + "'><br><br>";
-    html += "Hide SSID: <input type='checkbox' name='hidden' " + 
+    html += "Masquer le SSID : <input type='checkbox' name='hidden' " + 
             String(config.isHiddenSSID() ? "checked" : "") + "><br><br>";
-    html += "<input type='submit' value='Save' class='btn'>";
+    html += "<input type='submit' value='Enregistrer' class='btn'>";
     html += "</form>";
     html += "</div>";
     
@@ -175,10 +170,10 @@ void WebServerManager::handleWifiSave() {
     Serial.println("Processing WiFi configuration save");
     _webPageHandled = true;
 
-    if (server.hasArg("ssid") && server.hasArg("mode")) {
+    if (server.hasArg("ssid")) {
         String ssid = server.arg("ssid");
         String password = server.arg("password");
-        bool isAP = server.arg("mode") == "1";
+        bool isAP = true;
         uint8_t channel = server.hasArg("channel") ? server.arg("channel").toInt() : 6;
         bool hidden = server.hasArg("hidden");
         
@@ -214,12 +209,12 @@ void WebServerManager::handleMessageConfig() {
     Serial.println("Handling message configuration page request");
     _webPageHandled = true;
 
-    String html = getHeader("Message Configuration");
+    String html = getHeader("Configuration des Messages");
     
     html += "<div class='config-section'>";
-    html += "<h2>Current Message Settings</h2>";
-    html += formatConfigItem("Active Message", String(config.getNumeroMessage()));
-    html += formatConfigItem("Active Message Text", config.getMessageText(config.getNumeroMessage()));
+    html += "<h2>Paramètres du Message Actuel</h2>";
+    html += formatConfigItem("Message Actif", String(config.getNumeroMessage()));
+    html += formatConfigItem("Texte du Message Actif", config.getMessageText(config.getNumeroMessage()));
     html += "</div>";
 
     // Add CSS for radio button styling and button container
@@ -260,7 +255,7 @@ void WebServerManager::handleMessageConfig() {
 
     // Message selection with radio buttons and action buttons
     html += "<div class='config-section'>";
-    html += "<h2>Message Management</h2>";
+    html += "<h2>Gestion des Messages</h2>";
     html += "<form action='/message-save' method='post'>";
     
     // Message list with radio buttons
@@ -279,11 +274,11 @@ void WebServerManager::handleMessageConfig() {
     // Button container with groups
     html += "<div class='button-container'>";
     html += "<div class='button-group'>";
-    html += "<button type='submit' name='action' value='setActive' class='btn'>Set Active Message</button>";
+    html += "<button type='submit' name='action' value='setActive' class='btn'>Définir comme Actif</button>";
     html += "</div>";
     html += "<div class='button-group'>";
-    html += "<button type='submit' name='action' value='add' class='btn'>Add New Message</button>";
-    html += "<button type='submit' name='action' value='remove' class='btn'>Remove Selected</button>";
+    html += "<button type='submit' name='action' value='add' class='btn'>Ajouter un Message</button>";
+    html += "<button type='submit' name='action' value='remove' class='btn'>Supprimer la Sélection</button>";
     html += "</div>";
     html += "</div>";
     html += "</form>";
@@ -291,25 +286,25 @@ void WebServerManager::handleMessageConfig() {
 
     // Updated message text editing section
     html += "<div class='config-section'>";
-    html += "<h2>Edit Selected Message</h2>";
+    html += "<h2>Modifier le Message Sélectionné</h2>";
     html += "<form action='/message-text-save' method='post'>";
     html += "<input type='hidden' id='messageNumber' name='number' value='" + 
             String(config.getNumeroMessage()) + "'>";
     html += "<textarea id='messageText' name='text' rows='2' cols='40' "
-            "placeholder='Select a message to edit'></textarea><br>";
-    html += "<input type='submit' value='Save Message' class='btn'>";
+            "placeholder='Sélectionnez un message à modifier'></textarea><br>";
+    html += "<input type='submit' value='Enregistrer le Message' class='btn'>";
     html += "</form>";
     html += "</div>";
 
     // Add volume control section before the footer
     html += "<div class='config-section'>";
-    html += "<h2>Volume Control</h2>";
-    html += formatConfigItem("Current Volume", String(config.getVolume()));
+    html += "<h2>Contrôle du Volume</h2>";
+    html += formatConfigItem("Volume Actuel", String(config.getVolume()));
     html += "<form action='/volume-save' method='post'>";
-    html += "<label for='volume'>Volume (0-30): </label>";
+    html += "<label for='volume'>Volume (0-30) : </label>";
     html += "<input type='number' id='volume' name='volume' min='0' max='30' value='" + 
             String(config.getVolume()) + "'>";
-    html += "<input type='submit' value='Save Volume' class='btn'>";
+    html += "<input type='submit' value='Enregistrer le Volume' class='btn'>";
     html += "</form>";
     html += "</div>";
     
@@ -438,23 +433,23 @@ void WebServerManager::handleEsp32Config() {
     Serial.println("Handling ESP32 configuration page request");
     _webPageHandled = true;
 
-    String html = getHeader("ESP32 Config");
+    String html = getHeader("Configuration ESP32");
     
     html += "<div class='config-section'>";
-    html += "<h2>System Information</h2>";
-    html += formatConfigItem("Firmware Version", FIRMWARE_VERSION);
-    html += formatConfigItem("Compile Date", __DATE__);
-    html += formatConfigItem("Compile Time", __TIME__);
+    html += "<h2>Informations Système</h2>";
+    html += formatConfigItem("Version du Firmware", FIRMWARE_VERSION);
+    html += formatConfigItem("Date de Compilation", __DATE__);
+    html += formatConfigItem("Heure de Compilation", __TIME__);
     html += "</div>";
 
     html += "<div class='config-section'>";
-    html += "<h2>System Actions</h2>";
+    html += "<h2>Actions Système</h2>";
     html += "<form action='/esp32-action' method='post' style='display:flex; gap:10px;'>";
     html += "<button type='submit' name='action' value='reset' class='btn' "
-            "onclick='return confirm(\"Are you sure you want to reboot the ESP32?\")'>Reboot ESP32</button>";
+            "onclick='return confirm(\"Êtes-vous sûr de vouloir redémarrer l'ESP32 ?\")'>Redémarrer ESP32</button>";
     html += "<button type='submit' name='action' value='clear' class='btn' "
             "style='background:#e74c3c;' "
-            "onclick='return confirm(\"Are you sure you want to clear all configuration?\")'>Clear Configuration</button>";
+            "onclick='return confirm(\"Êtes-vous sûr de vouloir effacer toute la configuration ?\")'>Effacer la Configuration</button>";
     html += "</form>";
     html += "</div>";
     
@@ -473,7 +468,7 @@ void WebServerManager::handleEsp32Action() {
         
         if (action == "reset") {
             Serial.println("Rebooting ESP32...");
-            server.send(200, "text/plain", "Rebooting...");
+            server.send(200, "text/plain", "Redémarrage en cours...");
             delay(500);
             ESP.restart();
         }
@@ -481,7 +476,7 @@ void WebServerManager::handleEsp32Action() {
             Serial.println("Clearing configuration...");
             if (LittleFS.remove("/config.json")) {
                 Serial.println("Configuration file removed");
-                server.send(200, "text/plain", "Configuration cleared. Rebooting...");
+                server.send(200, "text/plain", "Configuration effacée. Redémarrage...");
                 delay(500);
                 ESP.restart();
             } else {
