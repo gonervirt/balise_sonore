@@ -25,6 +25,7 @@
  * SOFTWARE.
  */
 #include "web_server_manager.h"
+#include <WiFi.h>
 
 #ifndef FIRMWARE_VERSION
 #define FIRMWARE_VERSION "development"
@@ -499,8 +500,14 @@ void WebServerManager::handleEsp32Action() {
 void WebServerManager::handleNotFound() {
     _webPageHandled = true;
     
-    Serial.println("404 Not Found: " + server.uri());
-    server.send(404, "text/plain", "Not found");
+    if (config.isAccessPoint()) {
+        // Redirect to captive portal root
+        server.sendHeader("Location", String("http://") + WiFi.softAPIP().toString() + String("/"), true);
+        server.send(302, "text/plain", "");
+    } else {
+        Serial.println("404 Not Found: " + server.uri());
+        server.send(404, "text/plain", "Not found");
+    }
 }
 
 WebServerManager::~WebServerManager() {

@@ -54,6 +54,7 @@
 #include "wifi_manager.h"
 #include "web_server_manager.h"
 #include "esp_wifi.h"  // Include for power management configuration
+#include <DNSServer.h>
 #endif
 
 // Pin definitions based on board type
@@ -121,6 +122,7 @@ RadioMessageHandler inputHandler(RADIO_PIN);
 WiFiManager wifiManager(config);
 WebServerManager *webServer;
 Timer wifiLiveDurationTimer; // Timer for periodic WiFi checks
+DNSServer dnsServer;
 const unsigned long WIFI_LIVE_DURATION = 120000; // 2 minutes 
 #endif
 
@@ -236,6 +238,10 @@ void setup()
     webServer = new WebServerManager(config);
     webServer->begin();
     Serial.println("webServer started");
+    if (config.isAccessPoint()) {
+        dnsServer.start(53, "*", WiFi.softAPIP());
+        Serial.println("DNS Server started for Captive Portal");
+    }
     #endif
 
 
@@ -263,6 +269,9 @@ void loop()
     #ifndef DISABLE_WIFI
     // Add at the beginning of the loop function
     if (wifiManager.isAlive()) {
+        if (config.isAccessPoint()) {
+            dnsServer.processNextRequest();
+        }
         if (webServer->handleClient()){
             // a web client was handled, reset timer before switch off wifi
             // reset WiFi live duration timer
@@ -326,6 +335,9 @@ void loop()
             if (!wifiManager.isAlive()) {
                 Serial.println("Wifi restarting Access Point...");
                 wifiManager.startAP();
+                if (config.isAccessPoint()) {
+                    dnsServer.start(53, "*", WiFi.softAPIP());
+                }
             } else {
                 Serial.println("Wifi is alive, skipping start AP");
             }
