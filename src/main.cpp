@@ -418,7 +418,7 @@ void loop()
         }
         // check if a input hanlder is ativated
         inputHandler.update();
-        tonePlayer.update(); // update sound player volume if needed
+
         // if event is activated, go to state HOT_RESTART
         currentState = waitEvent(currentState, [&]() { return inputHandler.isActivated(); }, HOT_RESTART);
         // stop the wifi after WIFI_LIVE_DURATION
